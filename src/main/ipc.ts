@@ -1,27 +1,20 @@
-import { ipcMain } from 'electron'
-import { db } from './db'
+// src/preload/index.ts
+import { contextBridge, ipcRenderer } from 'electron'
+import type { TodoItem } from '../shared/todo.type'
 
-export function registerTodoHandlers(): void {
-  ipcMain.handle('todos:getAll', () => {
-    const stmt = db.prepare('SELECT * FROM todos ORDER BY id DESC')
-    return stmt.all()
-  })
+const api = {
+  getTodos: (): Promise<TodoItem[]> => ipcRenderer.invoke('todos:getAll'),
 
-  ipcMain.handle('todos:add', (_, title: string) => {
-    const stmt = db.prepare('INSERT INTO todos (title) VALUES (?)')
-    const result = stmt.run(title)
-    return { id: result.lastInsertRowid, title, completed: 0 }
-  })
+  addTodo: (title: string, parentId?: string): Promise<TodoItem> =>
+    ipcRenderer.invoke('todos:add', title, parentId),
 
-  ipcMain.handle('todos:toggle', (_, id: number, completed: boolean) => {
-    const stmt = db.prepare('UPDATE todos SET completed = ? WHERE id = ?')
-    stmt.run(completed ? 1 : 0, id)
-    return true
-  })
+  toggleTodo: (id: string, completed: boolean): Promise<boolean> =>
+    ipcRenderer.invoke('todos:toggle', id, completed),
 
-  ipcMain.handle('todos:delete', (_, id: number) => {
-    const stmt = db.prepare('DELETE FROM todos WHERE id = ?')
-    stmt.run(id)
-    return true
-  })
+  moveTodo: (id: string, target: 'active' | 'deactive'): Promise<boolean> =>
+    ipcRenderer.invoke('todos:move', id, target),
+
+  deleteTodo: (id: string): Promise<boolean> => ipcRenderer.invoke('todos:delete', id)
 }
+
+contextBridge.exposeInMainWorld('api', api)

@@ -1,11 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import { TodoStatus } from '../shared/todo.type';
 
 // Custom APIs for renderer
-const api = {
+export const api = {
   getTodos: () => ipcRenderer.invoke('todos:getAll'),
   addTodo: (title: string) => ipcRenderer.invoke('todos:add', title),
-  toggleTodo: (id: number, completed: boolean) => ipcRenderer.invoke('todos:toggle', id, completed),
+  toggleTodo: (id: number, status: TodoStatus) => ipcRenderer.invoke('todos:toggle', id, status),
   deleteTodo: (id: number) => ipcRenderer.invoke('todos:delete', id)
 }
 
