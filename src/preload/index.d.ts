@@ -1,11 +1,16 @@
-// src/renderer/src/env.d.ts
-import type { TodoItem } from '../../shared/todo.type'
+import type { ElectronAPI } from '@electron-toolkit/preload'
+import type { TodoItem, Cycle, CreateCycleDTO } from '../shared/todo.type'
 
 declare global {
   interface Window {
+    electron: ElectronAPI
     api: {
-      getTodos(): Promise<TodoItem[]>
-      addTodo(title: string, parentId?: string): Promise<TodoItem>
+      getActiveCycle(): Promise<Cycle | null>
+      getAllCycles(): Promise<Cycle[]>
+      createCycle(dto: CreateCycleDTO): Promise<Cycle>
+      getTodos(cycleId?: string): Promise<TodoItem[]>
+      addTodo(title: string, parentId?: string, note?: string): Promise<TodoItem>
+      updateTodo(id: string, data: { title?: string; note?: string }): Promise<boolean>
       toggleTodo(id: string, completed: boolean): Promise<boolean>
       moveTodo(id: string, target: 'active' | 'deactive'): Promise<boolean>
       deleteTodo(id: string): Promise<boolean>

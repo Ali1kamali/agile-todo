@@ -1,18 +1,27 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import { TodoStatus } from '../shared/todo.type';
+import type { TodoItem, Cycle, CreateCycleDTO } from '../shared/todo.type'
 
 // Custom APIs for renderer
 export const api = {
-  getTodos: () => ipcRenderer.invoke('todos:getAll'),
-  addTodo: (title: string) => ipcRenderer.invoke('todos:add', title),
-  toggleTodo: (id: number, status: TodoStatus) => ipcRenderer.invoke('todos:toggle', id, status),
-  deleteTodo: (id: number) => ipcRenderer.invoke('todos:delete', id)
+  // Cycles
+  getActiveCycle: (): Promise<Cycle | null> => ipcRenderer.invoke('cycles:getActive'),
+  getAllCycles: (): Promise<Cycle[]> => ipcRenderer.invoke('cycles:getAll'),
+  createCycle: (dto: CreateCycleDTO): Promise<Cycle> => ipcRenderer.invoke('cycles:create', dto),
+
+  // Todos
+  getTodos: (cycleId?: string): Promise<TodoItem[]> => ipcRenderer.invoke('todos:getAll', cycleId),
+  addTodo: (title: string, parentId?: string, note?: string): Promise<TodoItem> =>
+    ipcRenderer.invoke('todos:add', title, parentId, note),
+  updateTodo: (id: string, data: { title?: string; note?: string }): Promise<boolean> =>
+    ipcRenderer.invoke('todos:update', id, data),
+  toggleTodo: (id: string, completed: boolean): Promise<boolean> =>
+    ipcRenderer.invoke('todos:toggle', id, completed),
+  moveTodo: (id: string, target: 'active' | 'deactive'): Promise<boolean> =>
+    ipcRenderer.invoke('todos:move', id, target),
+  deleteTodo: (id: string): Promise<boolean> => ipcRenderer.invoke('todos:delete', id)
 }
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
