@@ -1,10 +1,10 @@
 {
   "name": "agile-todo",
   "version": "1.0.0",
-  "description": "An Electron application with React and TypeScript",
+  "description": "Cross-Platform Personal Growth Todo App",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": "Ali1kamali",
+  "homepage": "https://github.com/Ali1kamali/agile-todo",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
@@ -22,40 +22,6 @@
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
     "build:win": "electron-vite build && electron-builder --win"
-  },
-  "build": {
-    "appId": "com.yourname.todoapp",
-    "productName": "TodoApp",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "out/**/*",
-      "node_modules/better-sqlite3/**/*"
-    ],
-    "asar": true,
-    "asarUnpack": [
-      "**/node_modules/better-sqlite3/build/Release/*"
-    ],
-    "win": {
-      "target": [
-        "nsis",
-        "portable"
-      ]
-    },
-    "mac": {
-      "target": [
-        "dmg",
-        "zip"
-      ],
-      "category": "public.app-category.productivity"
-    },
-    "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ]
-    }
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
