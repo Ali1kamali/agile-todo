@@ -11,7 +11,7 @@ db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
 
 export function initDatabase(): void {
-  // 1. Schema versioning / migrations table
+  // 1. Schema versioning table
   db.exec(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       version INTEGER PRIMARY KEY,
@@ -32,44 +32,94 @@ export function initDatabase(): void {
     );
   `)
 
-  // 3. Todos table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS todos (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      is_completed INTEGER NOT NULL DEFAULT 0,
-      status TEXT NOT NULL DEFAULT 'deactive'
-        CHECK (status IN ('active', 'deactive', 'completed')),
-      created_at TEXT NOT NULL,
-      parent_id TEXT REFERENCES todos(id) ON DELETE CASCADE,
-      cycle_id TEXT REFERENCES cycles(id) ON DELETE SET NULL,
-      previous_status TEXT
-        CHECK (previous_status IN ('active', 'deactive') OR previous_status IS NULL),
-      note TEXT
-    );
-  `)
+  // 3. Robust migration for todos table
+  // Check existing columns
+  const tableCheck = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='todos'").get()
+  
+  if (tableCheck) {
+    const todoCols = db.prepare("PRAGMA table_info('todos')").all() as { name: string; type: string }[]
+    const colNames = new Set(todoCols.map((c) => c.name))
 
-  // Migration checks for columns in existing databases
-  const todoCols = db.prepare("PRAGMA table_info('todos')").all() as { name: string }[]
-  const colNames = new Set(todoCols.map((c) => c.name))
+    // If existing table has the legacy structure (e.g., 'completed' instead of 'is_completed' or INTEGER id)
+    if (!colNames.has('is_completed') || !colNames.has('status') || !colNames.has('parent_id')) {
+      db.transaction(() => {
+        // Create new standardized table
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS todos_new (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            is_completed INTEGER NOT NULL DEFAULT 0,
+            status TEXT NOT NULL DEFAULT 'deactive'
+              CHECK (status IN ('active', 'deactive', 'completed')),
+            created_at TEXT NOT NULL,
+            parent_id TEXT REFERENCES todos_new(id) ON DELETE CASCADE,
+            cycle_id TEXT REFERENCES cycles(id) ON DELETE SET NULL,
+            previous_status TEXT
+              CHECK (previous_status IN ('active', 'deactive') OR previous_status IS NULL),
+            note TEXT
+          );
+        `)
 
-  if (!colNames.has('cycle_id')) {
-    try {
-      db.exec('ALTER TABLE todos ADD COLUMN cycle_id TEXT REFERENCES cycles(id) ON DELETE SET NULL;')
-    } catch {
-      // Ignore if already exists
+        // Migrate existing rows if any
+        try {
+          const legacyRows = db.prepare('SELECT * FROM todos').all() as any[]
+          const insertStmt = db.prepare(`
+            INSERT INTO todos_new (id, title, is_completed, status, created_at, parent_id, cycle_id, note)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `)
+
+          for (const row of legacyRows) {
+            const isCompleted = row.is_completed ?? (row.completed ? 1 : 0)
+            const status = row.status ?? (isCompleted ? 'completed' : 'deactive')
+            const id = String(row.id)
+            const parentId = row.parent_id ? String(row.parent_id) : null
+            const createdAt = row.created_at || new Date().toISOString()
+            const cycleId = row.cycle_id || null
+            const note = row.note || null
+
+            insertStmt.run(id, row.title, isCompleted, status, createdAt, parentId, cycleId, note)
+          }
+        } catch (e) {
+          console.error('Migration data copy warning:', e)
+        }
+
+        // Drop old table and rename new table
+        db.exec('DROP TABLE todos;')
+        db.exec('ALTER TABLE todos_new RENAME TO todos;')
+      })()
+    } else {
+      // Ensure missing nullable columns like cycle_id and note exist
+      if (!colNames.has('cycle_id')) {
+        try {
+          db.exec('ALTER TABLE todos ADD COLUMN cycle_id TEXT REFERENCES cycles(id) ON DELETE SET NULL;')
+        } catch {}
+      }
+      if (!colNames.has('note')) {
+        try {
+          db.exec('ALTER TABLE todos ADD COLUMN note TEXT;')
+        } catch {}
+      }
     }
+  } else {
+    // Fresh create
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS todos (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        is_completed INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'deactive'
+          CHECK (status IN ('active', 'deactive', 'completed')),
+        created_at TEXT NOT NULL,
+        parent_id TEXT REFERENCES todos(id) ON DELETE CASCADE,
+        cycle_id TEXT REFERENCES cycles(id) ON DELETE SET NULL,
+        previous_status TEXT
+          CHECK (previous_status IN ('active', 'deactive') OR previous_status IS NULL),
+        note TEXT
+      );
+    `)
   }
 
-  if (!colNames.has('note')) {
-    try {
-      db.exec('ALTER TABLE todos ADD COLUMN note TEXT;')
-    } catch {
-      // Ignore if already exists
-    }
-  }
-
-  // Ensure there is at least an initial active cycle if none exists
+  // 4. Ensure there is at least an initial active cycle
   const activeCycle = db.prepare("SELECT id FROM cycles WHERE status = 'active' LIMIT 1").get()
   if (!activeCycle) {
     const defaultCycleId = 'default-cycle'

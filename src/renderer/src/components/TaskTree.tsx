@@ -54,6 +54,8 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
   const handleDeleteWithSwal = async (task: TodoItem, e: React.MouseEvent) => {
     e.stopPropagation()
 
+    const isDarkMode = document.documentElement.classList.contains('dark')
+
     const result = await Swal.fire({
       title: t('deleteConfirmTitle'),
       text: t('deleteConfirmText'),
@@ -62,7 +64,9 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
       confirmButtonColor: '#ef4444',
       cancelButtonColor: '#64748b',
       confirmButtonText: t('yesDelete'),
-      cancelButtonText: t('cancelDelete')
+      cancelButtonText: t('cancelDelete'),
+      background: isDarkMode ? '#0f172a' : '#ffffff',
+      color: isDarkMode ? '#f8fafc' : '#0f172a'
     })
 
     if (result.isConfirmed) {
@@ -73,7 +77,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
   if (!tasks || tasks.length === 0) {
     if (level === 0) {
       return (
-        <div className="py-8 text-center text-sm text-slate-400">
+        <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
           {mode === 'all' && t('noTasks')}
           {mode === 'today' && t('noTodayTasks')}
           {mode === 'completed' && t('noCompletedTasks')}
@@ -89,8 +93,8 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
         'space-y-1.5',
         level > 0 &&
           (dir === 'rtl'
-            ? 'mr-4 border-r border-slate-200 pr-2 mt-1'
-            : 'ml-4 border-l border-slate-200 pl-2 mt-1')
+            ? 'mr-4 border-r border-slate-200 dark:border-slate-800 pr-2 mt-1'
+            : 'ml-4 border-l border-slate-200 dark:border-slate-800 pl-2 mt-1')
       )}
     >
       {tasks.map((task) => {
@@ -104,8 +108,8 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
               className={cn(
                 'flex items-center gap-2 rounded-xl p-2.5 transition-all text-sm select-none border',
                 isCompleted
-                  ? 'bg-slate-50/70 border-slate-200/50 text-slate-400'
-                  : 'bg-white border-slate-200 hover:border-sky-300 hover:shadow-xs text-slate-800'
+                  ? 'bg-slate-50/70 dark:bg-slate-900/40 border-slate-200/50 dark:border-slate-800/60 text-slate-400 dark:text-slate-500'
+                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-accent-500 hover:shadow-xs text-slate-800 dark:text-slate-200'
               )}
             >
               {/* Expand / Collapse Button */}
@@ -113,7 +117,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                 <button
                   type="button"
                   onClick={(e) => toggleCollapse(task.id, e)}
-                  className="p-0.5 text-slate-400 hover:text-slate-700 transition"
+                  className="p-0.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition cursor-pointer"
                 >
                   {isCollapsed ? (
                     <ChevronRight className={cn('w-4 h-4', dir === 'rtl' && 'rotate-180')} />
@@ -130,10 +134,10 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                 type="button"
                 disabled={busy}
                 onClick={() => onToggle(task, !isCompleted)}
-                className="cursor-pointer text-slate-400 hover:text-sky-600 transition"
+                className="cursor-pointer text-slate-400 hover:text-accent-600 dark:hover:text-accent-500 transition"
               >
                 {isCompleted ? (
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500 fill-emerald-50" />
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 fill-emerald-50 dark:fill-emerald-950/20" />
                 ) : (
                   <Circle className="w-5 h-5" />
                 )}
@@ -144,13 +148,13 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                 <span
                   className={cn(
                     'block truncate font-medium',
-                    isCompleted && 'line-through text-slate-400'
+                    isCompleted && 'line-through text-slate-400 dark:text-slate-500'
                   )}
                 >
                   {task.title}
                 </span>
                 {task.note && (
-                  <span className="block truncate text-xs text-slate-400">{task.note}</span>
+                  <span className="block truncate text-xs text-slate-400 dark:text-slate-500">{task.note}</span>
                 )}
               </div>
 
@@ -162,7 +166,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                     type="button"
                     title={t('addSubtask')}
                     onClick={() => onAddSubtask(task)}
-                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-sky-600 transition"
+                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-accent-600 dark:hover:text-accent-400 transition cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -174,7 +178,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                     type="button"
                     title={t('moveToToday')}
                     onClick={() => onMoveToToday(task)}
-                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-amber-500 transition"
+                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-amber-500 transition cursor-pointer"
                   >
                     <Sun className="w-4 h-4" />
                   </button>
@@ -184,7 +188,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                     type="button"
                     title={t('moveToAll')}
                     onClick={() => onMoveToAll(task)}
-                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-sky-600 transition"
+                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-accent-600 dark:hover:text-accent-400 transition cursor-pointer"
                   >
                     <ListTodo className="w-4 h-4" />
                   </button>
@@ -194,7 +198,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                     type="button"
                     title={t('restoreTask')}
                     onClick={() => onRestore(task)}
-                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-emerald-600 transition"
+                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition cursor-pointer"
                   >
                     <Undo2 className="w-4 h-4" />
                   </button>
@@ -205,7 +209,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                   type="button"
                   title={t('editTask')}
                   onClick={() => onEdit(task)}
-                  className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-indigo-600 transition"
+                  className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-accent-600 dark:hover:text-accent-400 transition cursor-pointer"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
@@ -215,7 +219,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                   type="button"
                   title={t('deleteTask')}
                   onClick={(e) => handleDeleteWithSwal(task, e)}
-                  className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition"
+                  className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>

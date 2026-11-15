@@ -32,19 +32,19 @@ export const QuickTaskInput: React.FC<QuickTaskInputProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="relative mt-2">
-      <div className="flex items-center gap-2 rounded-xl bg-slate-50/80 px-3 py-2 border border-slate-200 focus-within:border-sky-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-sky-100 transition">
+      <div className="flex items-center gap-2 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 px-3 py-2 border border-slate-200 dark:border-slate-800 focus-within:border-accent-500 focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-2 focus-within:ring-accent-500/20 transition">
         <Plus className="w-4 h-4 text-slate-400 shrink-0" />
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={placeholder || (parentId ? t('addSubtaskPlaceholder') : t('addTaskPlaceholder'))}
-          className="w-full bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none"
+          className="w-full bg-transparent text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none"
         />
         <button
           type="submit"
           disabled={!title.trim() || isAdding}
-          className="rounded-lg bg-sky-600 px-3 py-1 text-xs font-medium text-white hover:bg-sky-700 disabled:opacity-0 transition"
+          className="rounded-lg bg-accent-600 px-3 py-1 text-xs font-medium text-white hover:bg-accent-700 disabled:opacity-0 transition cursor-pointer"
         >
           {t('save')}
         </button>

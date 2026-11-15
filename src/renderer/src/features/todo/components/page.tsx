@@ -38,8 +38,9 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
       ])
       setCycle(activeCycle)
       setTodos(fetchedTodos)
-    } catch (err) {
-      setError(String(err))
+      setError(null)
+    } catch (err: any) {
+      setError(err?.message || String(err))
     }
   }
 
@@ -55,8 +56,8 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
       await mutate()
       const updatedTodos = await window.api.getTodos()
       setTodos(updatedTodos)
-    } catch (err) {
-      setError(String(err))
+    } catch (err: any) {
+      setError(err?.message || String(err))
     } finally {
       setBusy(false)
     }
@@ -136,9 +137,9 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
           <section className="flex flex-col rounded-2xl bg-white dark:bg-slate-900 p-4 shadow-xs border border-slate-200/80 dark:border-slate-800 min-h-0 transition-colors">
             <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <ListTodo className="h-5 w-5 text-sky-500" />
+                <ListTodo className="h-5 w-5 text-accent-500" />
                 <h2 className="font-bold text-slate-800 dark:text-slate-100 text-base">{t('allTasks')}</h2>
-                <span className="rounded-full bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 text-xs font-semibold text-sky-700 dark:text-sky-400">
+                <span className="rounded-full bg-accent-50 dark:bg-accent-500/10 px-2 py-0.5 text-xs font-semibold text-accent-700 dark:text-accent-400">
                   {allTasks.length}
                 </span>
               </div>
@@ -201,7 +202,7 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
 
       {/* Subtask inline quick adder modal */}
       {activeParentForSubtask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-2xl border border-slate-100 dark:border-slate-800">
             <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-2">
               {t('addSubtask')} ({activeParentForSubtask.title})
@@ -215,7 +216,7 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
             />
             <button
               onClick={() => setActiveParentForSubtask(null)}
-              className="mt-3 w-full rounded-xl border border-slate-200 dark:border-slate-700 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              className="mt-3 w-full rounded-xl border border-slate-200 dark:border-slate-700 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
             >
               {t('cancel')}
             </button>

@@ -67,7 +67,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ isOpen, onClos
             <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">{t('settings')}</h2>
             <button
               onClick={onClose}
-              className="rounded-xl p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="rounded-xl p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -76,7 +76,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ isOpen, onClos
           {/* Section: Language */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
-              <Languages className="w-4 h-4 text-sky-500" />
+              <Languages className="w-4 h-4 text-accent-500" />
               <span>{t('language')}</span>
             </div>
 
@@ -85,9 +85,9 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ isOpen, onClos
                 type="button"
                 onClick={() => setLocale('fa')}
                 className={cn(
-                  'flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-semibold border transition',
+                  'flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-semibold border transition cursor-pointer',
                   locale === 'fa'
-                    ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300'
+                    ? 'border-accent-500 bg-accent-50 text-accent-700 dark:bg-accent-500/10 dark:text-accent-400'
                     : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                 )}
               >
@@ -99,9 +99,9 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ isOpen, onClos
                 type="button"
                 onClick={() => setLocale('en')}
                 className={cn(
-                  'flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-semibold border transition',
+                  'flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-semibold border transition cursor-pointer',
                   locale === 'en'
-                    ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300'
+                    ? 'border-accent-500 bg-accent-50 text-accent-700 dark:bg-accent-500/10 dark:text-accent-400'
                     : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                 )}
               >
@@ -114,7 +114,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ isOpen, onClos
           {/* Section: Appearance / Theme Mode */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
-              <Palette className="w-4 h-4 text-sky-500" />
+              <Palette className="w-4 h-4 text-accent-500" />
               <span>{t('themeMode')}</span>
             </div>
 
@@ -133,9 +133,9 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ isOpen, onClos
                     type="button"
                     onClick={() => setTheme(item.id)}
                     className={cn(
-                      'flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-xs font-medium border transition',
+                      'flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-xs font-medium border transition cursor-pointer',
                       isSelected
-                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300 font-semibold'
+                        ? 'border-accent-500 bg-accent-50 text-accent-700 dark:bg-accent-500/10 dark:text-accent-400 font-semibold'
                         : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                     )}
                   >
@@ -161,7 +161,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ isOpen, onClos
                   onClick={() => setAccent(c.id)}
                   title={locale === 'fa' ? c.labelFa : c.labelEn}
                   className={cn(
-                    'w-8 h-8 rounded-full flex items-center justify-center transition-transform hover:scale-110 shadow-xs',
+                    'w-8 h-8 rounded-full flex items-center justify-center transition-transform hover:scale-110 shadow-xs cursor-pointer',
                     c.bgClass,
                     accent === c.id ? 'ring-2 ring-offset-2 ring-slate-800 dark:ring-white scale-110' : 'opacity-80'
                   )}
