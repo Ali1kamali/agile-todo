@@ -262,7 +262,7 @@ export function NewCyclePage({ onBack, onSuccess }: NewCyclePageProps): React.JS
   // Render Recursive Draft Item Inputs
   const renderDraftTasks = (items: TaskDraftItem[], level = 0) => {
     return (
-      <div className={level > 0 ? (dir === 'rtl' ? 'mr-5 pr-3 border-r-2 border-slate-200 dark:border-slate-800 mt-2 space-y-2' : 'ml-5 pl-3 border-l-2 border-slate-200 dark:border-slate-800 mt-2 space-y-2') : 'space-y-3'}>
+      <div className={level > 0 ? (dir === 'rtl' ? 'mr-6 pr-3 border-r-2 border-accent-500/30 dark:border-accent-500/20 mt-2 space-y-2' : 'ml-6 pl-3 border-l-2 border-accent-500/30 dark:border-accent-500/20 mt-2 space-y-2') : 'space-y-3'}>
         {items.map((item) => (
           <div key={item.id} className="rounded-xl bg-slate-50 dark:bg-slate-900/60 p-3 border border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-2">
@@ -298,8 +298,8 @@ export function NewCyclePage({ onBack, onSuccess }: NewCyclePageProps): React.JS
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 md:p-8 flex justify-center items-start transition-colors">
-      <div className="w-full max-w-3xl rounded-3xl bg-white dark:bg-slate-900 p-6 md:p-8 shadow-xl border border-slate-200/80 dark:border-slate-800">
+    <div className="h-screen w-full bg-slate-100 dark:bg-slate-950 overflow-y-auto p-4 md:p-8 flex justify-center items-start transition-colors">
+      <div className="w-full max-w-3xl rounded-3xl bg-white dark:bg-slate-900 p-6 md:p-8 shadow-xl border border-slate-200/80 dark:border-slate-800 my-auto sm:my-0">
         {/* Navigation & Header */}
         <div className="flex items-center justify-between pb-6 border-b border-slate-100 dark:border-slate-800 mb-6">
           <div className="flex items-center gap-3">

@@ -10,7 +10,9 @@ import {
   Undo2,
   Edit2,
   Trash2,
-  Plus
+  Plus,
+  CornerDownLeft,
+  CornerDownRight
 } from 'lucide-react'
 import { cn } from '@renderer/utils/cn'
 import { useI18n } from '@renderer/i18n/I18nContext'
@@ -90,11 +92,11 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
   return (
     <ul
       className={cn(
-        'space-y-1.5',
+        'space-y-2',
         level > 0 &&
           (dir === 'rtl'
-            ? 'mr-4 border-r border-slate-200 dark:border-slate-800 pr-2 mt-1'
-            : 'ml-4 border-l border-slate-200 dark:border-slate-800 pl-2 mt-1')
+            ? 'mr-6 border-r-2 border-accent-500/30 dark:border-accent-500/20 pr-3 mt-1.5'
+            : 'ml-6 border-l-2 border-accent-500/30 dark:border-accent-500/20 pl-3 mt-1.5')
       )}
     >
       {tasks.map((task) => {
@@ -106,12 +108,31 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
           <li key={task.id} className="group relative">
             <div
               className={cn(
-                'flex items-center gap-2 rounded-xl p-2.5 transition-all text-sm select-none border',
+                'flex items-center gap-2 rounded-xl p-2.5 transition-all text-sm select-none border relative',
+                level > 0 && (dir === 'rtl' ? 'shadow-xs' : 'shadow-xs'),
                 isCompleted
                   ? 'bg-slate-50/70 dark:bg-slate-900/40 border-slate-200/50 dark:border-slate-800/60 text-slate-400 dark:text-slate-500'
+                  : level > 0
+                  ? 'bg-slate-50/80 dark:bg-slate-850/80 border-slate-200/90 dark:border-slate-800 hover:border-accent-500 text-slate-800 dark:text-slate-200'
                   : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-accent-500 hover:shadow-xs text-slate-800 dark:text-slate-200'
               )}
             >
+              {/* Visual Branch Indicator for Subtasks */}
+              {level > 0 && (
+                <div
+                  className={cn(
+                    'text-accent-500/60 dark:text-accent-400/50 shrink-0 select-none'
+                  )}
+                  title="زیرکار"
+                >
+                  {dir === 'rtl' ? (
+                    <CornerDownLeft className="w-3.5 h-3.5 stroke-[2.5]" />
+                  ) : (
+                    <CornerDownRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                  )}
+                </div>
+              )}
+
               {/* Expand / Collapse Button */}
               {hasChildren ? (
                 <button
@@ -148,6 +169,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                 <span
                   className={cn(
                     'block truncate font-medium',
+                    level > 0 && 'text-[13px] text-slate-700 dark:text-slate-300',
                     isCompleted && 'line-through text-slate-400 dark:text-slate-500'
                   )}
                 >

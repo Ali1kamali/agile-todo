@@ -1,8 +1,10 @@
 /* ==========================================================================
-   Typography & Font Faces (Vazir Font Family)
-   Weights: 100 (Thin), 300 (Light), 400 (Regular), 500 (Medium), 700 (Bold)
+   Typography & Font Faces (Vazir & Nunito System)
+   Vazir: Persian & Arabic with high legibility
+   Nunito: Clean, rounded, highly legible Latin companion matching Vazir's geometry
    ========================================================================== */
 
+/* --- Vazir Font Family (Persian / Farsi) --- */
 @font-face {
   font-family: 'Vazir';
   src: url('../fonts/Vazir-Thin-FD-WOL.woff2') format('woff2');
@@ -47,9 +49,10 @@
    Design Tokens & CSS Variables for Fonts & Typography
    ========================================================================== */
 :root {
-  /* Font Family Stacks */
-  --font-sans-fa: 'Vazir', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-sans-en: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', Helvetica, Arial, sans-serif;
+  /* Vazir contains beautiful harmonious Latin glyphs matching its Persian styling,
+     paired with Segoe UI / SF Pro for modern desktop feel */
+  --font-sans-fa: 'Vazir', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans-en: 'Vazir', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Nunito', Roboto, sans-serif;
   --font-primary: var(--font-sans-fa);
 
   /* Font Weights */
