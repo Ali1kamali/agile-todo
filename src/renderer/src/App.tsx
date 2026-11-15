@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Home from './features/todo/components/page'
 import { NewCyclePage } from './features/newTodo/newTodo.page'
 import { I18nProvider } from './i18n/I18nContext'
+import { ThemeProvider } from './theme/ThemeContext'
 
 type CurrentPage = 'home' | 'new-cycle'
 
@@ -22,8 +23,10 @@ function MainApp(): React.JSX.Element {
 
 export default function App(): React.JSX.Element {
   return (
-    <I18nProvider>
-      <MainApp />
-    </I18nProvider>
+    <ThemeProvider>
+      <I18nProvider>
+        <MainApp />
+      </I18nProvider>
+    </ThemeProvider>
   )
 }

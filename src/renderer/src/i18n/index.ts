@@ -52,8 +52,16 @@ export const translations = {
     submitting: 'در حال ذخیره‌سازی...',
     cycleCreatedSuccess: 'دوره جدید با موفقیت ایجاد شد!',
     backToHome: 'بازگشت به صفحه اصلی',
-    language: 'زبان / Language',
-    cycleRemainingPercent: '{percent}٪ تکمیل شده'
+    language: 'زبان برنامه',
+    cycleRemainingPercent: '{percent}٪ تکمیل شده',
+    settings: 'تنظیمات',
+    appearance: 'ظاهر و پوسته',
+    themeMode: 'حالت نمایش',
+    themeLight: 'روشن',
+    themeDark: 'تاریک',
+    themeSystem: 'هماهنگ با سیستم',
+    accentColor: 'رنگ شاخص (تم)',
+    close: 'بستن'
   },
   en: {
     appTitle: 'Personal Growth & Agile Todo',
@@ -106,8 +114,16 @@ export const translations = {
     submitting: 'Saving...',
     cycleCreatedSuccess: 'New cycle started successfully!',
     backToHome: 'Back to Home',
-    language: 'Language / زبان',
-    cycleRemainingPercent: '{percent}% completed'
+    language: 'App Language',
+    cycleRemainingPercent: '{percent}% completed',
+    settings: 'Settings',
+    appearance: 'Appearance & Theme',
+    themeMode: 'Theme Mode',
+    themeLight: 'Light',
+    themeDark: 'Dark',
+    themeSystem: 'System',
+    accentColor: 'Accent Color',
+    close: 'Close'
   }
 }
 
