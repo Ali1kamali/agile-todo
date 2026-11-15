@@ -7,6 +7,7 @@ import { EditTaskModal } from '../../../components/EditTaskModal'
 import { SettingsSidebar } from '../../../components/SettingsSidebar'
 import { calculateHierarchicalProgress } from '../../../utils/progress'
 import { useI18n } from '../../../i18n/I18nContext'
+import { dataService } from '../../../services/dataService'
 import { Sun, CheckCircle, ListTodo } from 'lucide-react'
 
 interface HomeProps {
@@ -33,8 +34,8 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
   const reloadData = async () => {
     try {
       const [activeCycle, fetchedTodos] = await Promise.all([
-        window.api.getActiveCycle(),
-        window.api.getTodos()
+        dataService.getActiveCycle(),
+        dataService.getTodos()
       ])
       setCycle(activeCycle)
       setTodos(fetchedTodos)
@@ -54,7 +55,7 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
     setError(null)
     try {
       await mutate()
-      const updatedTodos = await window.api.getTodos()
+      const updatedTodos = await dataService.getTodos()
       setTodos(updatedTodos)
     } catch (err: any) {
       setError(err?.message || String(err))
@@ -89,10 +90,10 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
-      {/* Main 2-column desktop layout */}
-      <div className="grid flex-1 grid-cols-1 md:grid-cols-2 gap-5 min-h-0">
+      {/* Main 2-column desktop / 1-column mobile layout */}
+      <div className="grid flex-1 grid-cols-1 md:grid-cols-2 gap-5 min-h-0 overflow-y-auto md:overflow-hidden pb-4 md:pb-0">
         {/* Column 1: Today's Tasks */}
-        <section className="flex flex-col rounded-2xl bg-white dark:bg-slate-900 p-4 shadow-xs border border-slate-200/80 dark:border-slate-800 min-h-0 transition-colors">
+        <section className="flex flex-col rounded-2xl bg-white dark:bg-slate-900 p-4 shadow-xs border border-slate-200/80 dark:border-slate-800 min-h-[300px] md:min-h-0 transition-colors">
           <div className="flex items-center justify-between pb-3 mb-2 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
               <Sun className="h-5 w-5 text-amber-500" />
@@ -109,12 +110,12 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
               mode="today"
               busy={busy}
               onToggle={(task, completed) =>
-                runMutation(() => window.api.toggleTodo(task.id, completed))
+                runMutation(() => dataService.toggleTodo(task.id, completed))
               }
               onMoveToAll={(task) =>
-                runMutation(() => window.api.moveTodo(task.id, 'deactive'))
+                runMutation(() => dataService.moveTodo(task.id, 'deactive'))
               }
-              onDelete={(task) => runMutation(() => window.api.deleteTodo(task.id))}
+              onDelete={(task) => runMutation(() => dataService.deleteTodo(task.id))}
               onEdit={(task) => setEditingTask(task)}
               onAddSubtask={(task) => setActiveParentForSubtask(task)}
             />
@@ -123,8 +124,8 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
           <QuickTaskInput
             onAdd={(title) =>
               runMutation(async () => {
-                const newTask = await window.api.addTodo(title)
-                await window.api.moveTodo(newTask.id, 'active')
+                const newTask = await dataService.addTodo(title)
+                await dataService.moveTodo(newTask.id, 'active')
               })
             }
             placeholder={t('addTaskPlaceholder')}
@@ -132,7 +133,7 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
         </section>
 
         {/* Column 2: All Tasks & Completed Tasks */}
-        <div className="grid grid-rows-2 gap-5 min-h-0">
+        <div className="grid grid-rows-2 gap-5 min-h-[500px] md:min-h-0">
           {/* Top: All Tasks */}
           <section className="flex flex-col rounded-2xl bg-white dark:bg-slate-900 p-4 shadow-xs border border-slate-200/80 dark:border-slate-800 min-h-0 transition-colors">
             <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
@@ -151,19 +152,19 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
                 mode="all"
                 busy={busy}
                 onToggle={(task, completed) =>
-                  runMutation(() => window.api.toggleTodo(task.id, completed))
+                  runMutation(() => dataService.toggleTodo(task.id, completed))
                 }
                 onMoveToToday={(task) =>
-                  runMutation(() => window.api.moveTodo(task.id, 'active'))
+                  runMutation(() => dataService.moveTodo(task.id, 'active'))
                 }
-                onDelete={(task) => runMutation(() => window.api.deleteTodo(task.id))}
+                onDelete={(task) => runMutation(() => dataService.deleteTodo(task.id))}
                 onEdit={(task) => setEditingTask(task)}
                 onAddSubtask={(task) => setActiveParentForSubtask(task)}
               />
             </div>
 
             <QuickTaskInput
-              onAdd={(title) => runMutation(() => window.api.addTodo(title))}
+              onAdd={(title) => runMutation(() => dataService.addTodo(title))}
               placeholder={t('addTaskPlaceholder')}
             />
           </section>
@@ -186,12 +187,12 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
                 mode="completed"
                 busy={busy}
                 onToggle={(task, completed) =>
-                  runMutation(() => window.api.toggleTodo(task.id, completed))
+                  runMutation(() => dataService.toggleTodo(task.id, completed))
                 }
                 onRestore={(task) =>
-                  runMutation(() => window.api.toggleTodo(task.id, false))
+                  runMutation(() => dataService.toggleTodo(task.id, false))
                 }
-                onDelete={(task) => runMutation(() => window.api.deleteTodo(task.id))}
+                onDelete={(task) => runMutation(() => dataService.deleteTodo(task.id))}
                 onEdit={(task) => setEditingTask(task)}
                 onAddSubtask={() => {}}
               />
@@ -210,7 +211,7 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
             <QuickTaskInput
               parentId={activeParentForSubtask.id}
               onAdd={async (title, parentId) => {
-                await runMutation(() => window.api.addTodo(title, parentId))
+                await runMutation(() => dataService.addTodo(title, parentId))
                 setActiveParentForSubtask(null)
               }}
             />
@@ -230,7 +231,7 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
         isOpen={!!editingTask}
         onClose={() => setEditingTask(null)}
         onSave={async (id, title, note) => {
-          await runMutation(() => window.api.updateTodo(id, { title, note }))
+          await runMutation(() => dataService.updateTodo(id, { title, note }))
         }}
       />
 

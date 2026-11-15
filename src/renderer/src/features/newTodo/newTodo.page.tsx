@@ -9,6 +9,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import Swal from 'sweetalert2'
+import { dataService } from '@renderer/services/dataService'
 
 interface TaskDraftItem {
   id: string
@@ -206,7 +207,7 @@ export function NewCyclePage({ onBack, onSuccess }: NewCyclePageProps): React.JS
     const isDarkMode = document.documentElement.classList.contains('dark')
 
     // Check if active cycle exists and ask for confirmation
-    const activeCycle = await window.api.getActiveCycle()
+    const activeCycle = await dataService.getActiveCycle()
     let transferUnfinished = false
 
     if (activeCycle) {
@@ -234,7 +235,7 @@ export function NewCyclePage({ onBack, onSuccess }: NewCyclePageProps): React.JS
 
     setIsSubmitting(true)
     try {
-      await window.api.createCycle({
+      await dataService.createCycle({
         title: title.trim(),
         startDate,
         endDate,
