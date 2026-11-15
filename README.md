@@ -1,88 +1,92 @@
-# Personal Growth & Agile Todo App
+# Agile Todo — دستیار چرخه‌ای رشد فردی و مدیریت کارها
 
-A desktop personal growth and habit-building todo application inspired by **Microsoft To Do**, designed for goal-oriented planning cycles and recursive hierarchical task management.
+اکثر برنامه‌های مدیریت تسک فقط یک لیست طولانی از کارهایی هستند که هر روز به تعویق می‌افتند. **Agile Todo** با این ایده ساخته شده که کارهای روزمره باید در خدمت اهداف دوره‌ای ما باشند. 
 
-Built with **Electron**, **React**, **TypeScript**, **Tailwind CSS**, and **SQLite (better-sqlite3)**.
-
----
-
-## ✨ Features
-
-- 🎯 **Time-Bounded Planning Cycles:** Define growth cycles (1 to 6 months; recommended 3 months) by months, days, or explicit dates.
-- 🌳 **Arbitrary Nested Subtasks:** Infinite nesting depth for breaking down ambitious goals into manageable subtasks.
-- 📊 **Hierarchical Progress Weighting:** Mathematical, fair division of progress across top-level goals and recursive branches (no rounding shortfall).
-- 📅 **Microsoft To-Do Style Workspace:**
-  - **Today's Tasks (`active`):** Focused tasks for the day.
-  - **All Tasks (`deactive`):** Backlog for the current cycle with expand/collapse and subtask addition.
-  - **Completed Tasks (`completed`):** Archived accomplishments with full restoration capability.
-- 🔄 **Safe Cycle Transitions:** Option to carry over unfinished tasks along with their entire descendant subtrees to the new cycle.
-- 🌐 **Bilingual (Persian / English) & Full RTL/LTR Support:** Dynamic direction and localized text without layout breakage.
-- 🛡️ **Secure Desktop Architecture:** Hardened Electron preload API (`contextIsolation: true`, safe IPC channels) and local per-user SQLite storage with WAL mode.
-- 💬 **SweetAlert2 Confirmations:** Safe task deletion and cycle archiving confirmation dialogs.
+این برنامه با الهام از رابط کاربری سرراست مایکروسافت تودو (Microsoft To Do) و ترکیب آن با مفهوم «چرخه‌های زمانی چابک (Cycles)» ساخته شده تا به جای غرق شدن در لیست‌های بی‌پایان، روی دوره‌های رشد ۱ تا ۳ ماهه تمرکز کنید.
 
 ---
 
-## 🚀 Getting Started
+## این برنامه چطور کار می‌کند؟
 
-### Prerequisites
+### ۱. تعریف دوره‌های رشد (Cycles)
+به جای اینکه هدف‌ها را بدون بازه مشخص رها کنید، یک دوره (مثلاً ۳ ماهه) تعریف می‌کنید. برای هر دوره هدفتان را مشخص کرده و تسک‌های اصلی را در آن می‌چینید. سقف هر دوره حداکثر ۶ ماه است تا حس فوریت و تمرکز از بین نرود.
 
-- [Node.js](https://nodejs.org/) (v18 or higher recommended)
-- [pnpm](https://pnpm.io/) (v9 or v12)
+### ۲. زیرکارهای نامحدود و درختی
+کارهای بزرگ معمولاً شروع نمی‌شوند چون مبهم هستند. اینجا می‌توانید هر تسک را به چند مرحله کوچک‌تر، و هر مرحله را به گام‌های ریزتر بشکنید (بدون محدودیت در عمق شاخه‌ها).
 
-### Installation
+### ۳. پیشرفت واقعی و عادلانه (نه صرفاً شمارش تسک‌ها)
+در یک تسک بزرگ، انجام دادن یک زیرکار کوچک نباید کل کار را تمام‌شده نشان دهد یا برعکس نادیده گرفته شود. درصد پیشرفت بر اساس ساختار درختی و وزن واقعی هر مرحله محاسبه می‌شود تا انگیزه ادامه دادن حفظ شود.
 
-Clone the repository and install dependencies:
+### ۴. تفکیک فضای روزانه و بانک کارها
+- **کارهای امروز:** فقط مواردی که تصمیم دارید همین امروز انجام دهید، بدون حواس‌پرتی.
+- **همه کارها:** لیست کلی کارهای تعریف‌شده در این دوره برای زمان‌هایی که می‌خواهید کار بعدی را انتخاب کنید.
+- **تکمیل‌شده‌ها:** تاریخچه کارهایی که تمام کرده‌اید با امکان بازگردانی.
 
+### ۵. پایان دوره و تصمیم‌گیری درباره کارهای باقی‌مانده
+وقتی زمان دوره تمام می‌شود یا می‌خواهید دوره جدیدی شروع کنید، برنامه به شما اجازه می‌دهد کارهای انجام‌نشده را همراه با تمام زیرشاخه‌هایشان با یک کلیک به دوره جدید منتقل کنید یا یک صفحه کاملاً تازه باز کنید.
+
+---
+
+## امکانات و ظاهر برنامه
+
+- **پشتیبانی کامل از دو زبان:** فارسی (راست‌چین کامل) و انگلیسی (چپ‌چین) همراه با فونت خوانا و استاندارد وزیر (Vazir).
+- **حالت‌های نمایش و تم رنگی:** پشتیبانی از پوسته تاریک (Dark Mode)، روشن (Light Mode) یا هماهنگ با سیستم‌عامل به همراه انتخاب رنگ‌های شاخص در بخش تنظیمات.
+- **ذخیره‌سازی کاملاً آفلاین و امن:** داده‌ها روی حافظه سیستم خودتان در قالب SQLite ذخیره می‌شوند؛ بدون نیاز به اینترنت و بدون دسترسی شخص سوم.
+- **حفظ پیش‌نویس‌ها (Draft):** اگر در حال نوشتن هدف‌ها و کارهای دوره جدید باشید و برنامه بسته شود، نوشته‌هایتان از دست نمی‌رود.
+
+---
+
+## نحوه اجرا و توسعه روی سیستم
+
+اگر برنامه‌نویس هستید یا می‌خواهید برنامه را از روی سورس‌کد اجرا کنید:
+
+### پیش‌نیازها
+- نصب بودن **Node.js** (نسخه ۲۰ به بالا پیشنهاد می‌شود)
+- نصب بودن پکیج منیجر **pnpm**
+
+### مراحل راه‌اندازی
+
+۱. مخزن را کلون کنید:
 ```bash
 git clone https://github.com/Ali1kamali/agile-todo.git
 cd agile-todo
+```
+
+۲. وابستگی‌ها را نصب کنید:
+```bash
 pnpm install
 ```
 
-### Development
-
-Run the Electron application in hot-reload development mode:
-
+۳. اجرای برنامه در حالت توسعه (با Hot Reload):
 ```bash
 pnpm dev
 ```
 
-### Verification & Typecheck
-
+۴. اجرای تست‌های خودکار:
 ```bash
-pnpm typecheck
-pnpm lint
+pnpm test
 ```
 
-### Build & Package
-
-To build the production bundle:
-
+۵. خروجی گرفتن برای ویندوز:
 ```bash
-pnpm build
-```
-
-To package for desktop platforms:
-
-```bash
-# Windows
 pnpm build:win
-
-# macOS
-pnpm build:mac
-
-# Linux
-pnpm build:linux
 ```
+*(برای مک و لینوکس نیز اسکریپت‌های `build:mac` و `build:linux` در نظر گرفته شده است).*
 
 ---
 
-## 🗄️ Database & Storage
+## تکنولوژی‌های استفاده‌شده
 
-The application persists all cycles and nested tasks in an SQLite database file (`todos.db`) stored securely inside Electron's per-user application data directory (`app.getPath('userData')`). It uses Write-Ahead Logging (`WAL`) mode and foreign keys with `ON DELETE CASCADE` for subtask trees.
+- **Electron** برای هسته برنامه دسکتاپ کراس‌پلتفرم
+- **React + TypeScript** برای رابط کاربری روان و تایپ‌های امن
+- **Tailwind CSS** برای طراحی مینیمال و واکنش‌گرا
+- **better-sqlite3** برای دیتابیس محلی سریع
+- **Vitest & React Testing Library** برای اجرای مطمئن تست‌ها
 
 ---
 
-## 📜 License
+## مشارکت در توسعه
 
-[MIT License](LICENSE)
+ایده‌ها، پیشنهادات و رفع باگ‌ها همیشه خوش‌آمد هستند. اگر پیشنهادی برای بهبود برنامه دارید، لطفاً یک Issue یا Pull Request ایجاد کنید.
+
+مجوز پروژه: [MIT](LICENSE)
