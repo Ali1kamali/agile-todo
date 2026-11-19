@@ -8,7 +8,7 @@ import { SettingsSidebar } from '../../../components/SettingsSidebar'
 import { calculateHierarchicalProgress } from '../../../utils/progress'
 import { useI18n } from '../../../i18n/I18nContext'
 import { dataService } from '../../../services/dataService'
-import { Sun, CheckCircle, ListTodo, ChevronDown, ChevronRight } from 'lucide-react'
+import { Sun, CheckCircle, ListTodo } from 'lucide-react'
 
 interface HomeProps {
   onNavigateNewCycle: () => void
@@ -25,7 +25,6 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [activeParentForSubtask, setActiveParentForSubtask] = useState<TodoItem | null>(null)
   const [editingTask, setEditingTask] = useState<TodoItem | null>(null)
-  const [isCompletedOpen, setIsCompletedOpen] = useState(false)
 
   const reloadData = async () => {
     try {
@@ -105,11 +104,24 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
     [todos]
   )
 
-  // Completed Tasks:
-  const completedTasks = useMemo(
-    () => todos.filter((t) => t.status === 'completed' || t.isCompleted),
-    [todos]
-  )
+  // Flatten all completed tasks or completed subtrees
+  const completedTasks = useMemo(() => {
+    const list: TodoItem[] = []
+    function collectCompleted(item: TodoItem) {
+      if (item.status === 'completed' || item.isCompleted) {
+        list.push(item)
+      }
+      if (item.subtasks) {
+        for (const sub of item.subtasks) {
+          collectCompleted(sub)
+        }
+      }
+    }
+    for (const root of todos) {
+      collectCompleted(root)
+    }
+    return list
+  }, [todos])
 
   const progress = useMemo(() => calculateHierarchicalProgress(todos), [todos])
 
@@ -207,48 +219,39 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
               }
             />
 
-            {/* Completed Tasks Accordion / Collapsible Section within All Tasks scroll */}
-            {completedTasks.length > 0 && (
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsCompletedOpen((prev) => !prev)}
-                  className="flex w-full items-center justify-between rounded-xl p-2 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500" />
-                    <span>{t('completedTasks')}</span>
-                    <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
-                      {completedTasks.length}
-                    </span>
-                  </div>
-                  {isCompletedOpen ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
-                </button>
-
-                {isCompletedOpen && (
-                  <div className="mt-2 pt-1 border-t border-dashed border-slate-200 dark:border-slate-800">
-                    <TaskTree
-                      tasks={completedTasks}
-                      mode="completed"
-                      busy={busy}
-                      onToggle={(task, completed) =>
-                        runMutation(() => dataService.toggleTodo(task.id, completed))
-                      }
-                      onRestore={(task) =>
-                        runMutation(() => dataService.toggleTodo(task.id, false))
-                      }
-                      onDelete={(task) => runMutation(() => dataService.deleteTodo(task.id))}
-                      onEdit={(task) => setEditingTask(task)}
-                      onAddSubtask={() => {}}
-                    />
-                  </div>
-                )}
+            {/* Completed Tasks section directly visible when scrolling to bottom */}
+            <div className="pt-4 mt-2 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-2 pb-2 mb-2">
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
+                <h3 className="font-bold text-slate-700 dark:text-slate-300 text-xs">
+                  {t('completedTasks')}
+                </h3>
+                <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                  {completedTasks.length}
+                </span>
               </div>
-            )}
+
+              {completedTasks.length > 0 ? (
+                <TaskTree
+                  tasks={completedTasks}
+                  mode="completed"
+                  busy={busy}
+                  onToggle={(task, completed) =>
+                    runMutation(() => dataService.toggleTodo(task.id, completed))
+                  }
+                  onRestore={(task) =>
+                    runMutation(() => dataService.toggleTodo(task.id, false))
+                  }
+                  onDelete={(task) => runMutation(() => dataService.deleteTodo(task.id))}
+                  onEdit={(task) => setEditingTask(task)}
+                  onAddSubtask={() => {}}
+                />
+              ) : (
+                <div className="py-4 text-center text-xs text-slate-400 dark:text-slate-500">
+                  {t('noCompletedTasks')}
+                </div>
+              )}
+            </div>
           </div>
 
           <QuickTaskInput
