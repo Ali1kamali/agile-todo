@@ -1,4 +1,5 @@
 export type TodoStatus = 'completed' | 'active' | 'deactive'
+export type TargetType = 'simple' | 'numeric'
 
 export interface TodoItem {
   id: string
@@ -10,6 +11,12 @@ export interface TodoItem {
   cycleId?: string | null
   note?: string
   subtasks?: TodoItem[]
+
+  // Numeric / Habit Target Support
+  targetType?: TargetType
+  currentValue?: number
+  targetValue?: number
+  unit?: string
 }
 
 export type CycleDurationType = 'days' | 'months' | 'dates'
@@ -31,9 +38,17 @@ export interface CreateCycleDTO {
   tasks: Array<{
     title: string
     note?: string
+    targetType?: TargetType
+    currentValue?: number
+    targetValue?: number
+    unit?: string
     subtasks?: Array<{
       title: string
       note?: string
+      targetType?: TargetType
+      currentValue?: number
+      targetValue?: number
+      unit?: string
       subtasks?: any[]
     }>
   }>

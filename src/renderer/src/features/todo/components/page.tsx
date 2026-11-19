@@ -22,13 +22,8 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Settings sidebar state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-
-  // Subtask adding state
   const [activeParentForSubtask, setActiveParentForSubtask] = useState<TodoItem | null>(null)
-
-  // Edit task modal state
   const [editingTask, setEditingTask] = useState<TodoItem | null>(null)
 
   const reloadData = async () => {
@@ -64,15 +59,52 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
     }
   }
 
-  // Split tasks into sections
-  const todayTasks = useMemo(
-    () => todos.filter((t) => t.status === 'active' && !t.isCompleted),
-    [todos]
-  )
+  // --- Today Tasks Projection ---
+  // In Today's tasks, we include:
+  // 1. Any root tasks marked 'active'
+  // 2. Any subtasks marked 'active' - structured under their root parent (as a context header)
+  const todayTasksTree = useMemo(() => {
+    const todayRoots: TodoItem[] = []
+
+    // Helper to find which subtasks under a root are active
+    function extractActiveSubtree(item: TodoItem): TodoItem | null {
+      const isDirectlyActive = item.status === 'active' && !item.isCompleted
+      const filteredChildren: TodoItem[] = []
+
+      if (item.subtasks) {
+        for (const child of item.subtasks) {
+          const subResult = extractActiveSubtree(child)
+          if (subResult) filteredChildren.push(subResult)
+        }
+      }
+
+      // If this item is active OR any of its descendants are active, include it
+      if (isDirectlyActive || filteredChildren.length > 0) {
+        return {
+          ...item,
+          subtasks: filteredChildren
+        }
+      }
+      return null
+    }
+
+    for (const root of todos) {
+      if (!root.isCompleted && root.status !== 'completed') {
+        const subtree = extractActiveSubtree(root)
+        if (subtree) todayRoots.push(subtree)
+      }
+    }
+
+    return todayRoots
+  }, [todos])
+
+  // All Tasks: Uncompleted tasks
   const allTasks = useMemo(
-    () => todos.filter((t) => t.status === 'deactive' && !t.isCompleted),
+    () => todos.filter((t) => !t.isCompleted && t.status !== 'completed'),
     [todos]
   )
+
+  // Completed Tasks:
   const completedTasks = useMemo(
     () => todos.filter((t) => t.status === 'completed' || t.isCompleted),
     [todos]
@@ -82,7 +114,6 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
 
   return (
     <div className="flex h-screen flex-col bg-slate-100 dark:bg-slate-950 p-4 md:p-6 overflow-hidden select-none transition-colors">
-      {/* Top Header with Cycle Progress & Settings */}
       <CycleProgressHeader
         cycle={cycle}
         progress={progress}
@@ -99,14 +130,14 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
               <Sun className="h-5 w-5 text-amber-500" />
               <h2 className="font-bold text-slate-800 dark:text-slate-100 text-base">{t('todayTasks')}</h2>
               <span className="rounded-full bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
-                {todayTasks.length}
+                {todayTasksTree.length}
               </span>
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto pr-1">
             <TaskTree
-              tasks={todayTasks}
+              tasks={todayTasksTree}
               mode="today"
               busy={busy}
               onToggle={(task, completed) =>
@@ -118,6 +149,13 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
               onDelete={(task) => runMutation(() => dataService.deleteTodo(task.id))}
               onEdit={(task) => setEditingTask(task)}
               onAddSubtask={(task) => setActiveParentForSubtask(task)}
+              onUpdateValue={(task, delta) =>
+                runMutation(() =>
+                  dataService.updateTodo(task.id, {
+                    currentValue: Math.max(0, (task.currentValue ?? 0) + delta)
+                  })
+                )
+              }
             />
           </div>
 
@@ -160,6 +198,13 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
                 onDelete={(task) => runMutation(() => dataService.deleteTodo(task.id))}
                 onEdit={(task) => setEditingTask(task)}
                 onAddSubtask={(task) => setActiveParentForSubtask(task)}
+                onUpdateValue={(task, delta) =>
+                  runMutation(() =>
+                    dataService.updateTodo(task.id, {
+                      currentValue: Math.max(0, (task.currentValue ?? 0) + delta)
+                    })
+                  )
+                }
               />
             </div>
 
@@ -230,18 +275,16 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
         task={editingTask}
         isOpen={!!editingTask}
         onClose={() => setEditingTask(null)}
-        onSave={async (id, title, note) => {
-          await runMutation(() => dataService.updateTodo(id, { title, note }))
+        onSave={async (id, data) => {
+          await runMutation(() => dataService.updateTodo(id, data))
         }}
       />
 
-      {/* Settings Sidebar */}
       <SettingsSidebar
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
       />
 
-      {/* Status & Error Toasts */}
       {(loading || error) && (
         <div
           role={error ? 'alert' : 'status'}

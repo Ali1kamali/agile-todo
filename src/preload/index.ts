@@ -1,20 +1,33 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { TodoItem, Cycle, CreateCycleDTO } from '../shared/todo.type'
+import type { TodoItem, Cycle, CreateCycleDTO, TargetType } from '../shared/todo.type'
 
-// Custom APIs for renderer
 export const api = {
-  // Cycles
   getActiveCycle: (): Promise<Cycle | null> => ipcRenderer.invoke('cycles:getActive'),
   getAllCycles: (): Promise<Cycle[]> => ipcRenderer.invoke('cycles:getAll'),
   createCycle: (dto: CreateCycleDTO): Promise<Cycle> => ipcRenderer.invoke('cycles:create', dto),
 
-  // Todos
   getTodos: (cycleId?: string): Promise<TodoItem[]> => ipcRenderer.invoke('todos:getAll', cycleId),
-  addTodo: (title: string, parentId?: string, note?: string): Promise<TodoItem> =>
-    ipcRenderer.invoke('todos:add', title, parentId, note),
-  updateTodo: (id: string, data: { title?: string; note?: string }): Promise<boolean> =>
-    ipcRenderer.invoke('todos:update', id, data),
+  addTodo: (
+    title: string,
+    parentId?: string,
+    note?: string,
+    targetType?: TargetType,
+    targetValue?: number,
+    unit?: string
+  ): Promise<TodoItem> =>
+    ipcRenderer.invoke('todos:add', title, parentId, note, targetType, targetValue, unit),
+  updateTodo: (
+    id: string,
+    data: {
+      title?: string
+      note?: string
+      targetType?: TargetType
+      currentValue?: number
+      targetValue?: number
+      unit?: string
+    }
+  ): Promise<boolean> => ipcRenderer.invoke('todos:update', id, data),
   toggleTodo: (id: string, completed: boolean): Promise<boolean> =>
     ipcRenderer.invoke('todos:toggle', id, completed),
   moveTodo: (id: string, target: 'active' | 'deactive'): Promise<boolean> =>
@@ -30,8 +43,8 @@ if (process.contextIsolated) {
     console.error(error)
   }
 } else {
-  // @ts-ignore (define in dts)
+  // @ts-ignore
   window.electron = electronAPI
-  // @ts-ignore (define in dts)
+  // @ts-ignore
   window.api = api
 }

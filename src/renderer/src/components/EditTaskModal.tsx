@@ -1,24 +1,43 @@
 import React, { useState, useEffect } from 'react'
-import type { TodoItem } from '@shared/todo.type'
+import type { TodoItem, TargetType } from '@shared/todo.type'
 import { useI18n } from '@renderer/i18n/I18nContext'
+import { Target, CheckSquare } from 'lucide-react'
 
 interface EditTaskModalProps {
   task: TodoItem | null
   isOpen: boolean
   onClose: () => void
-  onSave: (id: string, title: string, note?: string) => Promise<void>
+  onSave: (
+    id: string,
+    data: {
+      title: string
+      note?: string
+      targetType: TargetType
+      currentValue?: number
+      targetValue?: number
+      unit?: string
+    }
+  ) => Promise<void>
 }
 
 export const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, onSave }) => {
   const { t } = useI18n()
   const [title, setTitle] = useState('')
   const [note, setNote] = useState('')
+  const [targetType, setTargetType] = useState<TargetType>('simple')
+  const [currentValue, setCurrentValue] = useState<string>('0')
+  const [targetValue, setTargetValue] = useState<string>('')
+  const [unit, setUnit] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     if (task) {
       setTitle(task.title)
       setNote(task.note || '')
+      setTargetType(task.targetType || 'simple')
+      setCurrentValue(String(task.currentValue ?? 0))
+      setTargetValue(task.targetValue !== undefined ? String(task.targetValue) : '')
+      setUnit(task.unit || '')
     }
   }, [task])
 
@@ -30,7 +49,14 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onCl
 
     setIsSaving(true)
     try {
-      await onSave(task.id, title.trim(), note.trim() || undefined)
+      await onSave(task.id, {
+        title: title.trim(),
+        note: note.trim() || undefined,
+        targetType,
+        currentValue: targetType === 'numeric' ? Number(currentValue) || 0 : undefined,
+        targetValue: targetType === 'numeric' && targetValue ? Number(targetValue) : undefined,
+        unit: targetType === 'numeric' ? unit.trim() || undefined : undefined
+      })
       onClose()
     } finally {
       setIsSaving(false)
@@ -54,12 +80,84 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onCl
             />
           </div>
 
+          {/* Type Toggle: Simple Checkbox vs Numeric Goal */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">نوع کار یا هدف</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setTargetType('simple')}
+                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                  targetType === 'simple'
+                    ? 'border-accent-500 bg-accent-50 text-accent-700 dark:bg-accent-500/10 dark:text-accent-400'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                <CheckSquare className="w-3.5 h-3.5" />
+                <span>کار عادی (تیک‌زدنی)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTargetType('numeric')}
+                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                  targetType === 'numeric'
+                    ? 'border-accent-500 bg-accent-50 text-accent-700 dark:bg-accent-500/10 dark:text-accent-400'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                <Target className="w-3.5 h-3.5" />
+                <span>هدف عددی / رکوردی</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Numeric Fields */}
+          {targetType === 'numeric' && (
+            <div className="grid grid-cols-3 gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <div>
+                <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">رکورد فعلی</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={currentValue}
+                  onChange={(e) => setCurrentValue(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:border-accent-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">هدف نهایی *</label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  placeholder="مثلاً 50"
+                  value={targetValue}
+                  onChange={(e) => setTargetValue(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:border-accent-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">واحد سنجش</label>
+                <input
+                  type="text"
+                  placeholder="عدد شنا / صفحه"
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:border-accent-500"
+                />
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">توضیحات یا یادداشت</label>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              rows={3}
+              rows={2}
               className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition resize-none"
             />
           </div>

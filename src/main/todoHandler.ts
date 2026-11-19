@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { ipcMain } from 'electron'
 import { db } from './db'
-import type { TodoItem, TodoStatus, Cycle, CreateCycleDTO } from '../shared/todo.type'
+import type { TodoItem, TodoStatus, Cycle, CreateCycleDTO, TargetType } from '../shared/todo.type'
 
 type TodoRow = {
   id: string
@@ -12,6 +12,10 @@ type TodoRow = {
   parent_id: string | null
   cycle_id: string | null
   note: string | null
+  target_type: TargetType | null
+  current_value: number | null
+  target_value: number | null
+  unit: string | null
 }
 
 type CycleRow = {
@@ -62,7 +66,6 @@ export function registerTodoHandlers(): void {
       throw new Error('تاریخ پایان باید بعد از تاریخ شروع باشد.')
     }
 
-    // Maximum 6 months validation (roughly 186 days)
     const durationDays = Math.round((end - start) / (1000 * 60 * 60 * 24))
     if (durationDays > 186) {
       throw new Error('مدت زمان دوره نمی‌تواند بیشتر از ۶ ماه باشد.')
@@ -72,24 +75,19 @@ export function registerTodoHandlers(): void {
     const nowIso = new Date().toISOString()
 
     const createTransaction = db.transaction(() => {
-      // Find current active cycle if any
       const currentActive = db.prepare("SELECT id FROM cycles WHERE status = 'active'").all() as { id: string }[]
 
-      // Archive previous active cycles
       db.prepare("UPDATE cycles SET status = 'archived' WHERE status = 'active'").run()
 
-      // Insert new cycle
       db.prepare(`
         INSERT INTO cycles (id, title, start_date, end_date, duration_days, status, created_at)
         VALUES (?, ?, ?, ?, ?, 'active', ?)
       `).run(newCycleId, dto.title.trim(), dto.startDate, dto.endDate, durationDays, nowIso)
 
-      // If transferUnfinishedTasks is requested, move active/deactive root tasks and their trees
       if (dto.transferUnfinishedTasks && currentActive.length > 0) {
         const activeIds = currentActive.map((c) => c.id)
         const placeholders = activeIds.map(() => '?').join(',')
 
-        // Move all unfinished tasks from previous cycles to new cycle
         db.prepare(`
           UPDATE todos
           SET cycle_id = ?
@@ -97,7 +95,6 @@ export function registerTodoHandlers(): void {
             AND status IN ('active', 'deactive')
         `).run(newCycleId, ...activeIds)
 
-        // Make sure any subtasks attached to transferred parents follow along
         db.prepare(`
           UPDATE todos
           SET cycle_id = ?
@@ -105,9 +102,8 @@ export function registerTodoHandlers(): void {
         `).run(newCycleId, newCycleId)
       }
 
-      // Insert tasks defined in DTO
       function insertTaskTree(
-        task: { title: string; note?: string; subtasks?: any[] },
+        task: any,
         parentId: string | null = null
       ) {
         if (!task.title?.trim()) return
@@ -115,9 +111,20 @@ export function registerTodoHandlers(): void {
         const createdAt = new Date().toISOString()
 
         db.prepare(`
-          INSERT INTO todos (id, title, is_completed, status, created_at, parent_id, cycle_id, note)
-          VALUES (?, ?, 0, 'deactive', ?, ?, ?, ?)
-        `).run(taskId, task.title.trim(), createdAt, parentId, newCycleId, task.note?.trim() || null)
+          INSERT INTO todos (id, title, is_completed, status, created_at, parent_id, cycle_id, note, target_type, current_value, target_value, unit)
+          VALUES (?, ?, 0, 'deactive', ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          taskId,
+          task.title.trim(),
+          createdAt,
+          parentId,
+          newCycleId,
+          task.note?.trim() || null,
+          task.targetType || 'simple',
+          task.currentValue ?? 0,
+          task.targetValue ?? null,
+          task.unit?.trim() || null
+        )
 
         if (Array.isArray(task.subtasks)) {
           for (const sub of task.subtasks) {
@@ -144,24 +151,23 @@ export function registerTodoHandlers(): void {
     let rows: TodoRow[]
     if (cycleId) {
       rows = db.prepare(`
-        SELECT id, title, is_completed, status, created_at, parent_id, cycle_id, note
+        SELECT id, title, is_completed, status, created_at, parent_id, cycle_id, note, target_type, current_value, target_value, unit
         FROM todos
         WHERE cycle_id = ?
         ORDER BY created_at ASC, id ASC
       `).all(cycleId) as TodoRow[]
     } else {
-      // Default to active cycle's todos
       const activeCycle = db.prepare("SELECT id FROM cycles WHERE status = 'active' LIMIT 1").get() as { id: string } | undefined
       if (activeCycle) {
         rows = db.prepare(`
-          SELECT id, title, is_completed, status, created_at, parent_id, cycle_id, note
+          SELECT id, title, is_completed, status, created_at, parent_id, cycle_id, note, target_type, current_value, target_value, unit
           FROM todos
           WHERE cycle_id = ?
           ORDER BY created_at ASC, id ASC
         `).all(activeCycle.id) as TodoRow[]
       } else {
         rows = db.prepare(`
-          SELECT id, title, is_completed, status, created_at, parent_id, cycle_id, note
+          SELECT id, title, is_completed, status, created_at, parent_id, cycle_id, note, target_type, current_value, target_value, unit
           FROM todos
           ORDER BY created_at ASC, id ASC
         `).all() as TodoRow[]
@@ -181,6 +187,10 @@ export function registerTodoHandlers(): void {
         parentId: row.parent_id,
         cycleId: row.cycle_id,
         note: row.note ?? undefined,
+        targetType: row.target_type || 'simple',
+        currentValue: row.current_value ?? 0,
+        targetValue: row.target_value ?? undefined,
+        unit: row.unit ?? undefined,
         subtasks: []
       })
     }
@@ -199,81 +209,137 @@ export function registerTodoHandlers(): void {
     return roots
   })
 
-  ipcMain.handle('todos:add', (_, title: string, parentId?: string, note?: string): TodoItem => {
-    if (typeof title !== 'string' || !title.trim()) {
-      throw new Error('عنوان کار معتبر نیست.')
+  ipcMain.handle(
+    'todos:add',
+    (
+      _,
+      title: string,
+      parentId?: string,
+      note?: string,
+      targetType: TargetType = 'simple',
+      targetValue?: number,
+      unit?: string
+    ): TodoItem => {
+      if (typeof title !== 'string' || !title.trim()) {
+        throw new Error('عنوان کار معتبر نیست.')
+      }
+
+      let status: 'active' | 'deactive' = 'deactive'
+      let cycleId: string | null = null
+
+      if (parentId) {
+        const parent = db.prepare('SELECT status, cycle_id FROM todos WHERE id = ?').get(parentId) as
+          { status: TodoStatus; cycle_id: string | null } | undefined
+
+        if (!parent) throw new Error('کار والد پیدا نشد.')
+        cycleId = parent.cycle_id
+      } else {
+        const activeCycle = db.prepare("SELECT id FROM cycles WHERE status = 'active' LIMIT 1").get() as { id: string } | undefined
+        cycleId = activeCycle ? activeCycle.id : null
+      }
+
+      const id = randomUUID()
+      const createdAt = new Date().toISOString()
+      const cleanTitle = title.trim()
+      const cleanNote = note?.trim() || null
+      const cleanUnit = unit?.trim() || null
+
+      db.prepare(`
+        INSERT INTO todos (id, title, is_completed, status, created_at, parent_id, cycle_id, note, target_type, current_value, target_value, unit)
+        VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+      `).run(id, cleanTitle, status, createdAt, parentId ?? null, cycleId, cleanNote, targetType, targetValue ?? null, cleanUnit)
+
+      return {
+        id,
+        title: cleanTitle,
+        isCompleted: false,
+        status,
+        createdAt,
+        parentId: parentId ?? null,
+        cycleId,
+        note: cleanNote ?? undefined,
+        targetType,
+        currentValue: 0,
+        targetValue: targetValue ?? undefined,
+        unit: cleanUnit ?? undefined,
+        subtasks: []
+      }
     }
+  )
 
-    let status: 'active' | 'deactive' = 'deactive'
-    let cycleId: string | null = null
+  ipcMain.handle(
+    'todos:update',
+    (
+      _,
+      id: string,
+      data: {
+        title?: string
+        note?: string
+        targetType?: TargetType
+        currentValue?: number
+        targetValue?: number
+        unit?: string
+      }
+    ): boolean => {
+      if (typeof id !== 'string') throw new Error('شناسه نامعتبر است.')
 
-    if (parentId) {
-      const parent = db.prepare('SELECT status, cycle_id FROM todos WHERE id = ?').get(parentId) as
-        { status: TodoStatus; cycle_id: string | null } | undefined
+      const updates: string[] = []
+      const params: any[] = []
 
-      if (!parent) throw new Error('کار والد پیدا نشد.')
+      if (data.title !== undefined) {
+        if (!data.title.trim()) throw new Error('عنوان نمی‌تواند خالی باشد.')
+        updates.push('title = ?')
+        params.push(data.title.trim())
+      }
 
-      status = parent.status === 'active' ? 'active' : 'deactive'
-      cycleId = parent.cycle_id
-    } else {
-      const activeCycle = db.prepare("SELECT id FROM cycles WHERE status = 'active' LIMIT 1").get() as { id: string } | undefined
-      cycleId = activeCycle ? activeCycle.id : null
+      if (data.note !== undefined) {
+        updates.push('note = ?')
+        params.push(data.note.trim() || null)
+      }
+
+      if (data.targetType !== undefined) {
+        updates.push('target_type = ?')
+        params.push(data.targetType)
+      }
+
+      if (data.currentValue !== undefined) {
+        updates.push('current_value = ?')
+        params.push(data.currentValue)
+
+        // Check if numeric target is reached
+        const currentTask = db.prepare('SELECT target_type, target_value FROM todos WHERE id = ?').get(id) as any
+        const targetVal = data.targetValue !== undefined ? data.targetValue : currentTask?.target_value
+        const isNumeric = (data.targetType || currentTask?.target_type) === 'numeric'
+
+        if (isNumeric && targetVal && data.currentValue >= targetVal) {
+          updates.push('is_completed = 1')
+          updates.push("status = 'completed'")
+        }
+      }
+
+      if (data.targetValue !== undefined) {
+        updates.push('target_value = ?')
+        params.push(data.targetValue)
+      }
+
+      if (data.unit !== undefined) {
+        updates.push('unit = ?')
+        params.push(data.unit.trim() || null)
+      }
+
+      if (updates.length === 0) return true
+
+      params.push(id)
+      const result = db.prepare(`UPDATE todos SET ${updates.join(', ')} WHERE id = ?`).run(...params)
+      return result.changes > 0
     }
-
-    const id = randomUUID()
-    const createdAt = new Date().toISOString()
-    const cleanTitle = title.trim()
-    const cleanNote = note?.trim() || null
-
-    db.prepare(`
-      INSERT INTO todos (id, title, is_completed, status, created_at, parent_id, cycle_id, note)
-      VALUES (?, ?, 0, ?, ?, ?, ?, ?)
-    `).run(id, cleanTitle, status, createdAt, parentId ?? null, cycleId, cleanNote)
-
-    return {
-      id,
-      title: cleanTitle,
-      isCompleted: false,
-      status,
-      createdAt,
-      parentId: parentId ?? null,
-      cycleId,
-      note: cleanNote ?? undefined,
-      subtasks: []
-    }
-  })
-
-  ipcMain.handle('todos:update', (_, id: string, data: { title?: string; note?: string }): boolean => {
-    if (typeof id !== 'string') throw new Error('شناسه نامعتبر است.')
-
-    const updates: string[] = []
-    const params: any[] = []
-
-    if (data.title !== undefined) {
-      if (!data.title.trim()) throw new Error('عنوان نمی‌تواند خالی باشد.')
-      updates.push('title = ?')
-      params.push(data.title.trim())
-    }
-
-    if (data.note !== undefined) {
-      updates.push('note = ?')
-      params.push(data.note.trim() || null)
-    }
-
-    if (updates.length === 0) return true
-
-    params.push(id)
-    const result = db.prepare(`UPDATE todos SET ${updates.join(', ')} WHERE id = ?`).run(...params)
-    return result.changes > 0
-  })
+  )
 
   ipcMain.handle('todos:toggle', (_, id: string, completed: boolean): boolean => {
     if (typeof id !== 'string' || typeof completed !== 'boolean') {
       throw new Error('ورودی نامعتبر است.')
     }
 
-    // Toggle completion recursively if needed, or update single task
-    // When completed: mark task completed, remember previous_status
     if (completed) {
       const result = db.prepare(`
         UPDATE todos
@@ -286,7 +352,6 @@ export function registerTodoHandlers(): void {
       return result.changes > 0
     }
 
-    // When uncompleted: restore previous status or default to deactive
     const result = db.prepare(`
       UPDATE todos
       SET
@@ -304,30 +369,14 @@ export function registerTodoHandlers(): void {
       throw new Error('مقصد انتقال نامعتبر است.')
     }
 
-    // Recursive helper to move whole descendant tree to same target status if not completed
-    const moveTransaction = db.transaction(() => {
-      // Update the parent
-      db.prepare(`
-        UPDATE todos
-        SET status = ?, is_completed = 0
-        WHERE id = ?
-      `).run(target, id)
+    // Single item move (does not forcibly move subtasks when a child is moved to today)
+    const result = db.prepare(`
+      UPDATE todos
+      SET status = ?, is_completed = 0
+      WHERE id = ?
+    `).run(target, id)
 
-      // Also recursively update active/deactive children so whole subtree moves consistently
-      function updateDescendants(parentId: string) {
-        const children = db.prepare('SELECT id, status FROM todos WHERE parent_id = ?').all(parentId) as { id: string; status: TodoStatus }[]
-        for (const child of children) {
-          if (child.status !== 'completed') {
-            db.prepare('UPDATE todos SET status = ? WHERE id = ?').run(target, child.id)
-          }
-          updateDescendants(child.id)
-        }
-      }
-      updateDescendants(id)
-    })
-
-    moveTransaction()
-    return true
+    return result.changes > 0
   })
 
   ipcMain.handle('todos:delete', (_, id: string): boolean => {
@@ -335,7 +384,6 @@ export function registerTodoHandlers(): void {
       throw new Error('شناسه نامعتبر است.')
     }
 
-    // ON DELETE CASCADE will clean up nested subtasks
     const result = db.prepare('DELETE FROM todos WHERE id = ?').run(id)
     return result.changes > 0
   })

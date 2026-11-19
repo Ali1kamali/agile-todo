@@ -1,21 +1,38 @@
 import { Capacitor } from '@capacitor/core'
 import { CapacitorSQLite, SQLiteConnection } from '@capacitor-community/sqlite'
-import type { TodoItem, Cycle, CreateCycleDTO, TodoStatus } from '@shared/todo.type'
+import type { TodoItem, Cycle, CreateCycleDTO, TodoStatus, TargetType } from '@shared/todo.type'
 
 export interface IDataService {
   getActiveCycle(): Promise<Cycle | null>
   getAllCycles(): Promise<Cycle[]>
   createCycle(dto: CreateCycleDTO): Promise<Cycle>
   getTodos(cycleId?: string): Promise<TodoItem[]>
-  addTodo(title: string, parentId?: string, note?: string): Promise<TodoItem>
-  updateTodo(id: string, data: { title?: string; note?: string }): Promise<boolean>
+  addTodo(
+    title: string,
+    parentId?: string,
+    note?: string,
+    targetType?: TargetType,
+    targetValue?: number,
+    unit?: string
+  ): Promise<TodoItem>
+  updateTodo(
+    id: string,
+    data: {
+      title?: string
+      note?: string
+      targetType?: TargetType
+      currentValue?: number
+      targetValue?: number
+      unit?: string
+    }
+  ): Promise<boolean>
   toggleTodo(id: string, completed: boolean): Promise<boolean>
   moveTodo(id: string, target: 'active' | 'deactive'): Promise<boolean>
   deleteTodo(id: string): Promise<boolean>
 }
 
 // -------------------------------------------------------------
-// 1. Electron Desktop Adapter (Uses window.api IPC directly)
+// 1. Electron Desktop Adapter
 // -------------------------------------------------------------
 class ElectronDataService implements IDataService {
   getActiveCycle(): Promise<Cycle | null> {
@@ -30,10 +47,27 @@ class ElectronDataService implements IDataService {
   getTodos(cycleId?: string): Promise<TodoItem[]> {
     return window.api.getTodos(cycleId)
   }
-  addTodo(title: string, parentId?: string, note?: string): Promise<TodoItem> {
-    return window.api.addTodo(title, parentId, note)
+  addTodo(
+    title: string,
+    parentId?: string,
+    note?: string,
+    targetType?: TargetType,
+    targetValue?: number,
+    unit?: string
+  ): Promise<TodoItem> {
+    return window.api.addTodo(title, parentId, note, targetType, targetValue, unit)
   }
-  updateTodo(id: string, data: { title?: string; note?: string }): Promise<boolean> {
+  updateTodo(
+    id: string,
+    data: {
+      title?: string
+      note?: string
+      targetType?: TargetType
+      currentValue?: number
+      targetValue?: number
+      unit?: string
+    }
+  ): Promise<boolean> {
     return window.api.updateTodo(id, data)
   }
   toggleTodo(id: string, completed: boolean): Promise<boolean> {
@@ -86,26 +120,13 @@ class MobileDataService implements IDataService {
           cycle_id TEXT REFERENCES cycles(id) ON DELETE SET NULL,
           previous_status TEXT
             CHECK (previous_status IN ('active', 'deactive') OR previous_status IS NULL),
-          note TEXT
+          note TEXT,
+          target_type TEXT DEFAULT 'simple',
+          current_value REAL DEFAULT 0,
+          target_value REAL,
+          unit TEXT
         );
       `)
-
-      // Ensure default cycle
-      const res = await db.query("SELECT id FROM cycles WHERE status = 'active' LIMIT 1")
-      if (!res.values || res.values.length === 0) {
-        const now = new Date()
-        const startDate = now.toISOString().slice(0, 10)
-        const end = new Date(now)
-        end.setMonth(end.getMonth() + 3)
-        const endDate = end.toISOString().slice(0, 10)
-        const durationDays = Math.round((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-
-        await db.run(
-          `INSERT INTO cycles (id, title, start_date, end_date, duration_days, status, created_at)
-           VALUES (?, ?, ?, ?, ?, 'active', ?)`,
-          ['default-cycle', 'دوره ۳ ماهه رشد فردی', startDate, endDate, durationDays, now.toISOString()]
-        )
-      }
 
       this.initialized = true
     }
@@ -167,9 +188,20 @@ class MobileDataService implements IDataService {
       const id = crypto.randomUUID()
       const createdAt = new Date().toISOString()
       await db.run(
-        `INSERT INTO todos (id, title, is_completed, status, created_at, parent_id, cycle_id, note)
-         VALUES (?, ?, 0, 'deactive', ?, ?, ?, ?)`,
-        [id, task.title.trim(), createdAt, parentId, newCycleId, task.note?.trim() || null]
+        `INSERT INTO todos (id, title, is_completed, status, created_at, parent_id, cycle_id, note, target_type, current_value, target_value, unit)
+         VALUES (?, ?, 0, 'deactive', ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          task.title.trim(),
+          createdAt,
+          parentId,
+          newCycleId,
+          task.note?.trim() || null,
+          task.targetType || 'simple',
+          task.currentValue ?? 0,
+          task.targetValue ?? null,
+          task.unit?.trim() || null
+        ]
       )
       if (Array.isArray(task.subtasks)) {
         for (const sub of task.subtasks) {
@@ -221,6 +253,10 @@ class MobileDataService implements IDataService {
         parentId: row.parent_id,
         cycleId: row.cycle_id,
         note: row.note ?? undefined,
+        targetType: row.target_type || 'simple',
+        currentValue: row.current_value ?? 0,
+        targetValue: row.target_value ?? undefined,
+        unit: row.unit ?? undefined,
         subtasks: []
       })
     }
@@ -238,7 +274,14 @@ class MobileDataService implements IDataService {
     return roots
   }
 
-  async addTodo(title: string, parentId?: string, note?: string): Promise<TodoItem> {
+  async addTodo(
+    title: string,
+    parentId?: string,
+    note?: string,
+    targetType: TargetType = 'simple',
+    targetValue?: number,
+    unit?: string
+  ): Promise<TodoItem> {
     const db = await this.getDB()
     const active = await this.getActiveCycle()
     const id = crypto.randomUUID()
@@ -247,9 +290,9 @@ class MobileDataService implements IDataService {
     const cycleId = active ? active.id : null
 
     await db.run(
-      `INSERT INTO todos (id, title, is_completed, status, created_at, parent_id, cycle_id, note)
-       VALUES (?, ?, 0, ?, ?, ?, ?, ?)`,
-      [id, title.trim(), status, createdAt, parentId ?? null, cycleId, note?.trim() || null]
+      `INSERT INTO todos (id, title, is_completed, status, created_at, parent_id, cycle_id, note, target_type, current_value, target_value, unit)
+       VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+      [id, title.trim(), status, createdAt, parentId ?? null, cycleId, note?.trim() || null, targetType, targetValue ?? null, unit?.trim() || null]
     )
 
     return {
@@ -261,18 +304,57 @@ class MobileDataService implements IDataService {
       parentId: parentId ?? null,
       cycleId,
       note: note?.trim() || undefined,
+      targetType,
+      currentValue: 0,
+      targetValue: targetValue ?? undefined,
+      unit: unit?.trim() || undefined,
       subtasks: []
     }
   }
 
-  async updateTodo(id: string, data: { title?: string; note?: string }): Promise<boolean> {
+  async updateTodo(
+    id: string,
+    data: {
+      title?: string
+      note?: string
+      targetType?: TargetType
+      currentValue?: number
+      targetValue?: number
+      unit?: string
+    }
+  ): Promise<boolean> {
     const db = await this.getDB()
-    if (data.title !== undefined && data.note !== undefined) {
-      await db.run('UPDATE todos SET title = ?, note = ? WHERE id = ?', [data.title.trim(), data.note.trim() || null, id])
-    } else if (data.title !== undefined) {
-      await db.run('UPDATE todos SET title = ? WHERE id = ?', [data.title.trim(), id])
-    } else if (data.note !== undefined) {
-      await db.run('UPDATE todos SET note = ? WHERE id = ?', [data.note.trim() || null, id])
+    const updates: string[] = []
+    const params: any[] = []
+
+    if (data.title !== undefined) {
+      updates.push('title = ?')
+      params.push(data.title.trim())
+    }
+    if (data.note !== undefined) {
+      updates.push('note = ?')
+      params.push(data.note.trim() || null)
+    }
+    if (data.targetType !== undefined) {
+      updates.push('target_type = ?')
+      params.push(data.targetType)
+    }
+    if (data.currentValue !== undefined) {
+      updates.push('current_value = ?')
+      params.push(data.currentValue)
+    }
+    if (data.targetValue !== undefined) {
+      updates.push('target_value = ?')
+      params.push(data.targetValue)
+    }
+    if (data.unit !== undefined) {
+      updates.push('unit = ?')
+      params.push(data.unit.trim() || null)
+    }
+
+    if (updates.length > 0) {
+      params.push(id)
+      await db.run(`UPDATE todos SET ${updates.join(', ')} WHERE id = ?`, params)
     }
     return true
   }
@@ -301,7 +383,7 @@ class MobileDataService implements IDataService {
 }
 
 // -------------------------------------------------------------
-// 3. Universal Factory: Automatically routes based on platform
+// 3. Universal Factory
 // -------------------------------------------------------------
 const isNativeMobile = Capacitor.isNativePlatform()
 export const dataService: IDataService = isNativeMobile

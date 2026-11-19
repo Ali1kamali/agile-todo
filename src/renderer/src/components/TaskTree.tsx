@@ -11,6 +11,7 @@ import {
   Edit2,
   Trash2,
   Plus,
+  Minus,
   CornerDownLeft,
   CornerDownRight
 } from 'lucide-react'
@@ -29,7 +30,9 @@ interface TaskTreeProps {
   onDelete: (todo: TodoItem) => Promise<void>
   onEdit: (todo: TodoItem) => void
   onAddSubtask: (parent: TodoItem) => void
+  onUpdateValue?: (todo: TodoItem, delta: number) => Promise<void>
   level?: number
+  isReadOnlyParent?: boolean
 }
 
 export const TaskTree: React.FC<TaskTreeProps> = ({
@@ -43,6 +46,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
   onDelete,
   onEdit,
   onAddSubtask,
+  onUpdateValue,
   level = 0
 }) => {
   const { t, dir } = useI18n()
@@ -55,7 +59,6 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
 
   const handleDeleteWithSwal = async (task: TodoItem, e: React.MouseEvent) => {
     e.stopPropagation()
-
     const isDarkMode = document.documentElement.classList.contains('dark')
 
     const result = await Swal.fire({
@@ -104,13 +107,22 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
         const isCollapsed = !!collapsedMap[task.id]
         const isCompleted = task.isCompleted || task.status === 'completed'
 
+        // Check if this task is a read-only context parent in Today's section
+        // In Today section, if a parent itself is NOT active (status !== 'active') but displayed as context header:
+        const isContextParentInToday = mode === 'today' && task.status !== 'active'
+        const isNumeric = task.targetType === 'numeric' && task.targetValue && task.targetValue > 0
+        const currentVal = task.currentValue ?? 0
+        const targetVal = task.targetValue ?? 0
+        const progressPct = isNumeric ? Math.min(100, Math.round((currentVal / targetVal) * 100)) : 0
+
         return (
           <li key={task.id} className="group relative">
             <div
               className={cn(
                 'flex items-center gap-2 rounded-xl p-2.5 transition-all text-sm select-none border relative',
-                level > 0 && (dir === 'rtl' ? 'shadow-xs' : 'shadow-xs'),
-                isCompleted
+                isContextParentInToday
+                  ? 'bg-slate-100/60 dark:bg-slate-800/40 border-dashed border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400'
+                  : isCompleted
                   ? 'bg-slate-50/70 dark:bg-slate-900/40 border-slate-200/50 dark:border-slate-800/60 text-slate-400 dark:text-slate-500'
                   : level > 0
                   ? 'bg-slate-50/80 dark:bg-slate-850/80 border-slate-200/90 dark:border-slate-800 hover:border-accent-500 text-slate-800 dark:text-slate-200'
@@ -151,39 +163,104 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
               )}
 
               {/* Checkbox / Completion Toggle */}
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => onToggle(task, !isCompleted)}
-                className="cursor-pointer text-slate-400 hover:text-accent-600 dark:hover:text-accent-500 transition"
-              >
-                {isCompleted ? (
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500 fill-emerald-50 dark:fill-emerald-950/20" />
-                ) : (
-                  <Circle className="w-5 h-5" />
-                )}
-              </button>
+              {isContextParentInToday ? (
+                // In Today section, root parents that are only headers are disabled
+                <span
+                  title="تکمیل کار اصلی فقط در بخش «همه کارها» امکان‌پذیر است"
+                  className="text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                >
+                  <Circle className="w-5 h-5 opacity-40" />
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onToggle(task, !isCompleted)}
+                  className="cursor-pointer text-slate-400 hover:text-accent-600 dark:hover:text-accent-500 transition"
+                >
+                  {isCompleted ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500 fill-emerald-50 dark:fill-emerald-950/20" />
+                  ) : (
+                    <Circle className="w-5 h-5" />
+                  )}
+                </button>
+              )}
 
               {/* Task Title & Notes */}
               <div className="flex-1 min-w-0">
-                <span
-                  className={cn(
-                    'block truncate font-medium',
-                    level > 0 && 'text-[13px] text-slate-700 dark:text-slate-300',
-                    isCompleted && 'line-through text-slate-400 dark:text-slate-500'
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      'block truncate font-medium',
+                      level > 0 && 'text-[13px] text-slate-700 dark:text-slate-300',
+                      isCompleted && 'line-through text-slate-400 dark:text-slate-500',
+                      isContextParentInToday && 'text-xs text-slate-500 dark:text-slate-400 font-semibold'
+                    )}
+                  >
+                    {task.title}
+                  </span>
+
+                  {isContextParentInToday && (
+                    <span className="text-[10px] rounded-md bg-slate-200/70 dark:bg-slate-700/60 px-1.5 py-0.5 text-slate-500 dark:text-slate-400">
+                      کار والد
+                    </span>
                   )}
-                >
-                  {task.title}
-                </span>
+                </div>
+
                 {task.note && (
                   <span className="block truncate text-xs text-slate-400 dark:text-slate-500">{task.note}</span>
                 )}
+
+                {/* Numeric Target Progress Indicator */}
+                {isNumeric && (
+                  <div className="mt-1 flex items-center gap-2">
+                    <div className="relative h-1.5 w-24 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                      <div
+                        className="h-full rounded-full bg-accent-500 transition-all duration-300"
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                    <span className="text-[11px] font-bold text-accent-600 dark:text-accent-400">
+                      {currentVal} / {targetVal} {task.unit || ''}
+                    </span>
+                  </div>
+                )}
               </div>
+
+              {/* Numeric Target Increment/Decrement Quick Buttons */}
+              {isNumeric && !isCompleted && !isContextParentInToday && onUpdateValue && (
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-700">
+                  <button
+                    type="button"
+                    title="کاهش رکورد"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onUpdateValue(task, -1)
+                    }}
+                    className="p-1 rounded hover:bg-white dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-red-500 transition cursor-pointer"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="px-1 text-xs font-bold text-slate-700 dark:text-slate-200 min-w-4 text-center">
+                    {currentVal}
+                  </span>
+                  <button
+                    type="button"
+                    title="افزایش رکورد"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onUpdateValue(task, 1)
+                    }}
+                    className="p-1 rounded hover:bg-white dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-accent-500 transition cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
 
               {/* Task Actions */}
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {/* Add Subtask Button */}
-                {!isCompleted && (
+                {!isContextParentInToday && !isCompleted && (
                   <button
                     type="button"
                     title={t('addSubtask')}
@@ -194,7 +271,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                   </button>
                 )}
 
-                {/* Move to Today / Move to All */}
+                {/* Move to Today (single task or subtask) */}
                 {mode === 'all' && onMoveToToday && (
                   <button
                     type="button"
@@ -205,7 +282,9 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                     <Sun className="w-4 h-4" />
                   </button>
                 )}
-                {mode === 'today' && onMoveToAll && (
+
+                {/* Move from Today back to All */}
+                {mode === 'today' && !isContextParentInToday && onMoveToAll && (
                   <button
                     type="button"
                     title={t('moveToAll')}
@@ -215,6 +294,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                     <ListTodo className="w-4 h-4" />
                   </button>
                 )}
+
                 {mode === 'completed' && onRestore && (
                   <button
                     type="button"
@@ -226,25 +306,26 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                   </button>
                 )}
 
-                {/* Edit Button */}
-                <button
-                  type="button"
-                  title={t('editTask')}
-                  onClick={() => onEdit(task)}
-                  className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-accent-600 dark:hover:text-accent-400 transition cursor-pointer"
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                </button>
-
-                {/* Delete Button */}
-                <button
-                  type="button"
-                  title={t('deleteTask')}
-                  onClick={(e) => handleDeleteWithSwal(task, e)}
-                  className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                {!isContextParentInToday && (
+                  <>
+                    <button
+                      type="button"
+                      title={t('editTask')}
+                      onClick={() => onEdit(task)}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-accent-600 dark:hover:text-accent-400 transition cursor-pointer"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      title={t('deleteTask')}
+                      onClick={(e) => handleDeleteWithSwal(task, e)}
+                      className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -261,6 +342,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                 onDelete={onDelete}
                 onEdit={onEdit}
                 onAddSubtask={onAddSubtask}
+                onUpdateValue={onUpdateValue}
                 level={level + 1}
               />
             )}
