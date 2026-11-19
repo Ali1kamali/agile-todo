@@ -8,7 +8,7 @@ import { SettingsSidebar } from '../../../components/SettingsSidebar'
 import { calculateHierarchicalProgress } from '../../../utils/progress'
 import { useI18n } from '../../../i18n/I18nContext'
 import { dataService } from '../../../services/dataService'
-import { Sun, CheckCircle, ListTodo } from 'lucide-react'
+import { Sun, CheckCircle, ListTodo, ChevronDown, ChevronRight } from 'lucide-react'
 
 interface HomeProps {
   onNavigateNewCycle: () => void
@@ -25,6 +25,7 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [activeParentForSubtask, setActiveParentForSubtask] = useState<TodoItem | null>(null)
   const [editingTask, setEditingTask] = useState<TodoItem | null>(null)
+  const [isCompletedOpen, setIsCompletedOpen] = useState(false)
 
   const reloadData = async () => {
     try {
@@ -170,80 +171,91 @@ export default function Home({ onNavigateNewCycle }: HomeProps) {
           />
         </section>
 
-        {/* Column 2: All Tasks & Completed Tasks */}
-        <div className="grid grid-rows-2 gap-5 min-h-[500px] md:min-h-0">
-          {/* Top: All Tasks */}
-          <section className="flex flex-col rounded-2xl bg-white dark:bg-slate-900 p-4 shadow-xs border border-slate-200/80 dark:border-slate-800 min-h-0 transition-colors">
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <ListTodo className="h-5 w-5 text-accent-500" />
-                <h2 className="font-bold text-slate-800 dark:text-slate-100 text-base">{t('allTasks')}</h2>
-                <span className="rounded-full bg-accent-50 dark:bg-accent-500/10 px-2 py-0.5 text-xs font-semibold text-accent-700 dark:text-accent-400">
-                  {allTasks.length}
-                </span>
-              </div>
+        {/* Column 2: All Tasks (with scrollable completed tasks section) */}
+        <section className="flex flex-col rounded-2xl bg-white dark:bg-slate-900 p-4 shadow-xs border border-slate-200/80 dark:border-slate-800 min-h-[300px] md:min-h-0 transition-colors">
+          <div className="flex items-center justify-between pb-3 mb-2 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <ListTodo className="h-5 w-5 text-accent-500" />
+              <h2 className="font-bold text-slate-800 dark:text-slate-100 text-base">{t('allTasks')}</h2>
+              <span className="rounded-full bg-accent-50 dark:bg-accent-500/10 px-2 py-0.5 text-xs font-semibold text-accent-700 dark:text-accent-400">
+                {allTasks.length}
+              </span>
             </div>
+          </div>
 
-            <div className="flex-1 overflow-y-auto pr-1">
-              <TaskTree
-                tasks={allTasks}
-                mode="all"
-                busy={busy}
-                onToggle={(task, completed) =>
-                  runMutation(() => dataService.toggleTodo(task.id, completed))
-                }
-                onMoveToToday={(task) =>
-                  runMutation(() => dataService.moveTodo(task.id, 'active'))
-                }
-                onDelete={(task) => runMutation(() => dataService.deleteTodo(task.id))}
-                onEdit={(task) => setEditingTask(task)}
-                onAddSubtask={(task) => setActiveParentForSubtask(task)}
-                onUpdateValue={(task, delta) =>
-                  runMutation(() =>
-                    dataService.updateTodo(task.id, {
-                      currentValue: Math.max(0, (task.currentValue ?? 0) + delta)
-                    })
-                  )
-                }
-              />
-            </div>
-
-            <QuickTaskInput
-              onAdd={(title) => runMutation(() => dataService.addTodo(title))}
-              placeholder={t('addTaskPlaceholder')}
+          <div className="flex-1 overflow-y-auto pr-1 space-y-4">
+            {/* Active / Incomplete Tasks */}
+            <TaskTree
+              tasks={allTasks}
+              mode="all"
+              busy={busy}
+              onToggle={(task, completed) =>
+                runMutation(() => dataService.toggleTodo(task.id, completed))
+              }
+              onMoveToToday={(task) =>
+                runMutation(() => dataService.moveTodo(task.id, 'active'))
+              }
+              onDelete={(task) => runMutation(() => dataService.deleteTodo(task.id))}
+              onEdit={(task) => setEditingTask(task)}
+              onAddSubtask={(task) => setActiveParentForSubtask(task)}
+              onUpdateValue={(task, delta) =>
+                runMutation(() =>
+                  dataService.updateTodo(task.id, {
+                    currentValue: Math.max(0, (task.currentValue ?? 0) + delta)
+                  })
+                )
+              }
             />
-          </section>
 
-          {/* Bottom: Completed Tasks */}
-          <section className="flex flex-col rounded-2xl bg-white dark:bg-slate-900 p-4 shadow-xs border border-slate-200/80 dark:border-slate-800 min-h-0 transition-colors">
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-emerald-500" />
-                <h2 className="font-bold text-slate-800 dark:text-slate-100 text-base">{t('completedTasks')}</h2>
-                <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                  {completedTasks.length}
-                </span>
+            {/* Completed Tasks Accordion / Collapsible Section within All Tasks scroll */}
+            {completedTasks.length > 0 && (
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsCompletedOpen((prev) => !prev)}
+                  className="flex w-full items-center justify-between rounded-xl p-2 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    <span>{t('completedTasks')}</span>
+                    <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                      {completedTasks.length}
+                    </span>
+                  </div>
+                  {isCompletedOpen ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </button>
+
+                {isCompletedOpen && (
+                  <div className="mt-2 pt-1 border-t border-dashed border-slate-200 dark:border-slate-800">
+                    <TaskTree
+                      tasks={completedTasks}
+                      mode="completed"
+                      busy={busy}
+                      onToggle={(task, completed) =>
+                        runMutation(() => dataService.toggleTodo(task.id, completed))
+                      }
+                      onRestore={(task) =>
+                        runMutation(() => dataService.toggleTodo(task.id, false))
+                      }
+                      onDelete={(task) => runMutation(() => dataService.deleteTodo(task.id))}
+                      onEdit={(task) => setEditingTask(task)}
+                      onAddSubtask={() => {}}
+                    />
+                  </div>
+                )}
               </div>
-            </div>
+            )}
+          </div>
 
-            <div className="flex-1 overflow-y-auto pr-1">
-              <TaskTree
-                tasks={completedTasks}
-                mode="completed"
-                busy={busy}
-                onToggle={(task, completed) =>
-                  runMutation(() => dataService.toggleTodo(task.id, completed))
-                }
-                onRestore={(task) =>
-                  runMutation(() => dataService.toggleTodo(task.id, false))
-                }
-                onDelete={(task) => runMutation(() => dataService.deleteTodo(task.id))}
-                onEdit={(task) => setEditingTask(task)}
-                onAddSubtask={() => {}}
-              />
-            </div>
-          </section>
-        </div>
+          <QuickTaskInput
+            onAdd={(title) => runMutation(() => dataService.addTodo(title))}
+            placeholder={t('addTaskPlaceholder')}
+          />
+        </section>
       </div>
 
       {/* Subtask inline quick adder modal */}
