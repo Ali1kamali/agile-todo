@@ -265,20 +265,20 @@ export function NewCyclePage({ onBack, onSuccess }: NewCyclePageProps): React.JS
     return (
       <div className={level > 0 ? (dir === 'rtl' ? 'mr-6 pr-3 border-r-2 border-accent-500/30 dark:border-accent-500/20 mt-2 space-y-2' : 'ml-6 pl-3 border-l-2 border-accent-500/30 dark:border-accent-500/20 mt-2 space-y-2') : 'space-y-3'}>
         {items.map((item) => (
-          <div key={item.id} className="rounded-xl bg-slate-50 dark:bg-slate-900/60 p-3 border border-slate-200 dark:border-slate-800">
+          <div key={item.id} className="rounded-xl bg-slate-100/90 dark:bg-slate-800 p-3 border border-slate-300/80 dark:border-slate-700 shadow-2xs">
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={item.title}
                 onChange={(e) => handleUpdateTask(item.id, e.target.value)}
                 placeholder={level === 0 ? 'هدف اصلی یا کار کلیدی...' : 'زیرکار یا مرحله اجرایی...'}
-                className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-accent-500"
+                className="flex-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-accent-500"
               />
               <button
                 type="button"
                 onClick={() => handleAddSubtask(item.id)}
                 title={t('addSubtask')}
-                className="flex items-center gap-1 rounded-lg bg-accent-50 dark:bg-accent-500/10 px-2.5 py-1.5 text-xs font-semibold text-accent-700 dark:text-accent-400 hover:bg-accent-100 dark:hover:bg-accent-500/20 transition cursor-pointer"
+                className="flex items-center gap-1 rounded-lg bg-accent-50 dark:bg-accent-500/20 px-2.5 py-1.5 text-xs font-semibold text-accent-700 dark:text-accent-300 hover:bg-accent-100 dark:hover:bg-accent-500/30 transition cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">{t('addSubtask')}</span>

@@ -121,12 +121,12 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
               className={cn(
                 'flex items-center gap-2 rounded-xl p-2.5 transition-all text-sm select-none border relative',
                 isContextParentInToday
-                  ? 'bg-slate-100/60 dark:bg-slate-800/40 border-dashed border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400'
+                  ? 'bg-slate-100/80 dark:bg-slate-800/60 border-dashed border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300'
                   : isCompleted
-                  ? 'bg-slate-50/70 dark:bg-slate-900/40 border-slate-200/50 dark:border-slate-800/60 text-slate-400 dark:text-slate-500'
+                  ? 'bg-slate-100/60 dark:bg-slate-900/40 border-slate-200/60 dark:border-slate-800/80 text-slate-400 dark:text-slate-500'
                   : level > 0
-                  ? 'bg-slate-50/80 dark:bg-slate-850/80 border-slate-200/90 dark:border-slate-800 hover:border-accent-500 text-slate-800 dark:text-slate-200'
-                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-accent-500 hover:shadow-xs text-slate-800 dark:text-slate-200'
+                  ? 'bg-slate-100/90 dark:bg-slate-800 border-slate-300/80 dark:border-slate-700 hover:border-accent-500 dark:hover:border-accent-400 text-slate-900 dark:text-slate-100 shadow-2xs'
+                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-accent-500 dark:hover:border-accent-400 hover:shadow-xs text-slate-900 dark:text-slate-100'
               )}
             >
               {/* Visual Branch Indicator for Subtasks */}
@@ -192,9 +192,9 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                   <span
                     className={cn(
                       'block truncate font-medium',
-                      level > 0 && 'text-[13px] text-slate-700 dark:text-slate-300',
-                      isCompleted && 'line-through text-slate-400 dark:text-slate-500',
-                      isContextParentInToday && 'text-xs text-slate-500 dark:text-slate-400 font-semibold'
+                      level > 0 ? 'text-[13px] text-slate-800 dark:text-slate-100 font-semibold' : 'text-slate-900 dark:text-slate-100',
+                      isCompleted && 'line-through text-slate-400 dark:text-slate-500 font-normal',
+                      isContextParentInToday && 'text-xs text-slate-600 dark:text-slate-300 font-semibold'
                     )}
                   >
                     {task.title}
@@ -208,7 +208,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                 </div>
 
                 {task.note && (
-                  <span className="block truncate text-xs text-slate-400 dark:text-slate-500">{task.note}</span>
+                  <span className="block truncate text-xs text-slate-500 dark:text-slate-400 font-normal">{task.note}</span>
                 )}
 
                 {/* Numeric Target Progress Indicator */}
@@ -216,11 +216,11 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                   <div className="mt-1 flex items-center gap-2">
                     <div className="relative h-1.5 w-24 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
                       <div
-                        className="h-full rounded-full bg-accent-500 transition-all duration-300"
+                        className="h-full rounded-full bg-accent-600 dark:bg-accent-500 transition-all duration-300"
                         style={{ width: `${progressPct}%` }}
                       />
                     </div>
-                    <span className="text-[11px] font-bold text-accent-600 dark:text-accent-400">
+                    <span className="text-[11px] font-bold text-accent-700 dark:text-accent-300">
                       {currentVal} / {targetVal} {task.unit || ''}
                     </span>
                   </div>
@@ -229,7 +229,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
 
               {/* Numeric Target Increment/Decrement Quick Buttons */}
               {isNumeric && !isCompleted && !isContextParentInToday && onUpdateValue && (
-                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-1 bg-white dark:bg-slate-900 rounded-lg p-0.5 border border-slate-300 dark:border-slate-700 shadow-2xs">
                   <button
                     type="button"
                     title="کاهش رکورد"
@@ -237,11 +237,11 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                       e.stopPropagation()
                       onUpdateValue(task, -1)
                     }}
-                    className="p-1 rounded hover:bg-white dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-red-500 transition cursor-pointer"
+                    className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition cursor-pointer"
                   >
                     <Minus className="w-3.5 h-3.5" />
                   </button>
-                  <span className="px-1 text-xs font-bold text-slate-700 dark:text-slate-200 min-w-4 text-center">
+                  <span className="px-1 text-xs font-bold text-slate-800 dark:text-slate-100 min-w-4 text-center">
                     {currentVal}
                   </span>
                   <button
@@ -251,7 +251,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                       e.stopPropagation()
                       onUpdateValue(task, 1)
                     }}
-                    className="p-1 rounded hover:bg-white dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-accent-500 transition cursor-pointer"
+                    className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-accent-600 dark:hover:text-accent-400 transition cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </button>
